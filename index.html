@@ -1230,28 +1230,28 @@ async function loadReceivableData() {
     // ★★★ 묶음 그룹핑 (groupNo 있고 미수금 있는 것만) ★★★
     const groupMap = {};
     
-    for (let i = 0; i < data.list.length; i++) {
-      const item = data.list[i];
-      const gNo = String(item.groupNo || '').trim();
-      const gCount = Number(item.groupCount || 0);
-      const receivable = Number(item.receivable || 0);
-      
-      // groupNo가 있고, 2건 이상 묶음이고, 미수금이 있는 경우
-      if (gNo && gNo !== '' && gCount > 1 && receivable > 0) {
-        if (!groupMap[gNo]) {
-          groupMap[gNo] = {
-            groupNo: gNo,
-            items: [],
-            totalReceivable: 0,
-            centerName: item.centerName || '',
-            customerName: item.customerName || '',
-            phone: item.phone || ''
-          };
-        }
-        groupMap[gNo].items.push(item);
-        groupMap[gNo].totalReceivable += receivable;
-      }
+   for (let i = 0; i < data.list.length; i++) {
+  const item = data.list[i];
+  const gNo = String(item.groupNo || '').trim();
+  const gCount = Number(item.groupCount || 0);
+  const receivable = Number(item.receivable || 0);
+
+  // ★★★ 방어 코드 추가: groupCount가 비정상이면 무시 ★★★
+  if (gNo && gNo !== '' && gCount > 1 && gCount < 100 && receivable > 0) {
+    if (!groupMap[gNo]) {
+      groupMap[gNo] = {
+        groupNo: gNo,
+        items: [],
+        totalReceivable: 0,
+        centerName: item.centerName || '',
+        customerName: item.customerName || '',
+        phone: item.phone || ''
+      };
     }
+    groupMap[gNo].items.push(item);
+    groupMap[gNo].totalReceivable += receivable;
+  }
+}
     
     const groupList = Object.values(groupMap);
     console.log('묶음 그룹:', groupList.length, '개'); // 디버깅용
@@ -1337,7 +1337,7 @@ async function loadReceivableData() {
       for (let item of data.list.slice(0, 100)) {
         const gNo = String(item.groupNo || '').trim();
         const gCount = Number(item.groupCount || 0);
-        const hasGroup = gNo && gNo !== '' && gCount > 1;
+        const hasGroup = gNo && gNo !== '' && gCount > 1 && gCount < 100;
         
         html += `
           <div class="border-2 rounded-lg p-4 ${item.isOverdue ? 'border-red-400 bg-red-50' : 'border-gray-200'} cursor-pointer hover:shadow-lg transition" onclick="viewASDetail('${item.asNo}')">
