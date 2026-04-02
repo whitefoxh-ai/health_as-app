@@ -1225,29 +1225,38 @@ async function loadReceivableData() {
   try {
     const data = await callGAS('getReceivableScreenData', { keyword, dueType, technician });
     
-    // ★★★ 묶음별 그룹핑 ★★★
+    console.log('미수금 데이터:', data.list.length, '건'); // 디버깅용
+    
+    // ★★★ 묶음 그룹핑 (groupNo 있고 미수금 있는 것만) ★★★
     const groupMap = {};
-    data.list.forEach(item => {
-      // groupNo가 있고, groupCount가 2 이상인 경우만 묶음으로 처리
-      if (item.groupNo && item.groupNo.trim() !== '' && Number(item.groupCount) > 1) {
-        if (!groupMap[item.groupNo]) {
-          groupMap[item.groupNo] = {
-            groupNo: item.groupNo,
+    
+    for (let i = 0; i < data.list.length; i++) {
+      const item = data.list[i];
+      const gNo = String(item.groupNo || '').trim();
+      const gCount = Number(item.groupCount || 0);
+      const receivable = Number(item.receivable || 0);
+      
+      // groupNo가 있고, 2건 이상 묶음이고, 미수금이 있는 경우
+      if (gNo && gNo !== '' && gCount > 1 && receivable > 0) {
+        if (!groupMap[gNo]) {
+          groupMap[gNo] = {
+            groupNo: gNo,
             items: [],
             totalReceivable: 0,
-            centerName: item.centerName,
-            customerName: item.customerName,
-            phone: item.phone
+            centerName: item.centerName || '',
+            customerName: item.customerName || '',
+            phone: item.phone || ''
           };
         }
-        groupMap[item.groupNo].items.push(item);
-        groupMap[item.groupNo].totalReceivable += (item.receivable || 0);
+        groupMap[gNo].items.push(item);
+        groupMap[gNo].totalReceivable += receivable;
       }
-    });
+    }
     
-    const groupList = Object.values(groupMap).filter(g => g.totalReceivable > 0);
+    const groupList = Object.values(groupMap);
+    console.log('묶음 그룹:', groupList.length, '개'); // 디버깅용
     
-    container.innerHTML = `
+    let html = `
       <!-- 요약 카드 -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div class="card bg-red-50 text-center">
@@ -1267,82 +1276,106 @@ async function loadReceivableData() {
           <div class="text-xs">이번달 입금</div>
         </div>
       </div>
+    `;
+    
+    // ★★★ 묶음건 미수금 섹션 ★★★
+    if (groupList.length > 0) {
+      html += `
+        <div class="mb-6 p-4 bg-purple-100 rounded-lg border-2 border-purple-400">
+          <h3 class="font-black text-xl mb-4 text-purple-800">📦 묶음건 미수금 (${groupList.length}개 묶음)</h3>
+          <div class="space-y-4">
+      `;
       
-      <!-- ★★★ 묶음건 미수금 섹션 ★★★ -->
-      ${groupList.length > 0 ? `
-        <div class="mb-6">
-          <h3 class="font-black text-lg mb-3 text-purple-700">📦 묶음건 미수금 (${groupList.length}건)</h3>
-          <div class="space-y-3">
-            ${groupList.map(g => `
-              <div class="border-2 border-purple-400 rounded-lg p-4 bg-purple-50 hover:shadow-lg transition">
-                <div class="flex justify-between items-start mb-3">
-                  <div>
-                    <span class="font-black text-purple-700 text-lg">${g.groupNo}</span>
-                    <span class="ml-2 bg-purple-200 text-purple-800 px-2 py-1 rounded text-xs font-bold">${g.items.length}건 묶음</span>
-                  </div>
-                  <div class="text-right">
-                    <div class="font-black text-2xl text-red-600">${g.totalReceivable.toLocaleString()}원</div>
-                  </div>
-                </div>
-                
-                <div class="text-sm text-gray-700 mb-3">
-                  <strong>${g.centerName || g.customerName}</strong> | ${g.phone}
-                </div>
-                
-                <div class="bg-white p-2 rounded mb-3 text-xs text-gray-600">
-                  ${g.items.map(item => `
-                    <div class="flex justify-between py-1 border-b last:border-b-0">
-                      <span>${item.asNo} - ${item.equipmentType}</span>
-                      <span class="font-bold text-red-600">${(item.receivable || 0).toLocaleString()}원</span>
-                    </div>
-                  `).join('')}
-                </div>
-                
-                <button onclick="openGroupPaymentModal('${g.groupNo}')" class="btn btn-success w-full py-2">
-                  💰 묶음 입금 (${g.totalReceivable.toLocaleString()}원)
-                </button>
+      for (let g of groupList) {
+        html += `
+          <div class="bg-white rounded-lg p-4 border-2 border-purple-300 shadow-md">
+            <div class="flex justify-between items-start mb-3">
+              <div>
+                <span class="font-black text-purple-700 text-xl">${g.groupNo}</span>
+                <span class="ml-2 bg-purple-200 text-purple-800 px-2 py-1 rounded text-sm font-bold">${g.items.length}건</span>
               </div>
-            `).join('')}
+              <div class="text-right">
+                <div class="font-black text-2xl text-red-600">${g.totalReceivable.toLocaleString()}원</div>
+                <div class="text-xs text-gray-500">묶음 미수금</div>
+              </div>
+            </div>
+            
+            <div class="text-sm text-gray-700 mb-3">
+              <strong>${g.centerName || g.customerName}</strong> | ${g.phone}
+            </div>
+            
+            <div class="bg-gray-50 p-2 rounded mb-3">
+              ${g.items.map(item => `
+                <div class="flex justify-between py-1 text-sm border-b last:border-0">
+                  <span class="text-gray-600">${item.asNo} - ${item.equipmentType || ''}</span>
+                  <span class="font-bold text-red-600">${(item.receivable || 0).toLocaleString()}원</span>
+                </div>
+              `).join('')}
+            </div>
+            
+            <button onclick="openGroupPaymentModal('${g.groupNo}')" class="w-full btn btn-success py-3 text-lg font-bold">
+              💰 묶음 입금하기
+            </button>
+          </div>
+        `;
+      }
+      
+      html += `
           </div>
         </div>
-      ` : ''}
+      `;
+    }
+    
+    // 전체 미수금 목록
+    html += `<h3 class="font-black text-lg mb-3">📋 전체 미수금 목록 (${data.list.length}건)</h3>`;
+    
+    if (data.list.length === 0) {
+      html += '<div class="text-center py-8 text-gray-500">📭 미수금 없음</div>';
+    } else {
+      html += '<div class="space-y-3">';
       
-      <!-- 전체 미수금 목록 -->
-      <h3 class="font-black text-lg mb-3">📋 전체 미수금 목록</h3>
-      <div class="space-y-3">
-        ${data.list.length === 0 ? '<div class="text-center py-8 text-gray-500">📭 미수금 없음</div>' : ''}
-        ${data.list.slice(0, 100).map(item => `
+      for (let item of data.list.slice(0, 100)) {
+        const gNo = String(item.groupNo || '').trim();
+        const gCount = Number(item.groupCount || 0);
+        const hasGroup = gNo && gNo !== '' && gCount > 1;
+        
+        html += `
           <div class="border-2 rounded-lg p-4 ${item.isOverdue ? 'border-red-400 bg-red-50' : 'border-gray-200'} cursor-pointer hover:shadow-lg transition" onclick="viewASDetail('${item.asNo}')">
             <div class="flex justify-between items-start mb-2">
               <div>
                 <span class="font-black text-blue-600">${item.asNo}</span>
-                ${item.groupNo && item.groupNo.trim() !== '' && Number(item.groupCount) > 1 ? `
-                  <span class="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded font-bold">
-                    📦 ${item.groupNo} (${item.groupSeq}/${item.groupCount})
-                  </span>
-                ` : ''}
+                ${hasGroup ? `<span class="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded font-bold">📦 ${gNo} (${item.groupSeq}/${gCount})</span>` : ''}
               </div>
               <span class="font-black text-xl text-red-600">${(item.receivable || 0).toLocaleString()}원</span>
             </div>
             <div class="text-sm">${item.centerName || item.customerName} | ${item.phone}</div>
             <div class="text-xs text-gray-500 mt-1">
-              ${item.equipmentType} | ${item.paymentStatus}
+              ${item.equipmentType || ''} | ${item.paymentStatus || ''}
               ${item.isOverdue ? `<span class="text-red-600 font-bold ml-2">⚠️ 연체 ${item.daysOverdue}일</span>` : ''}
             </div>
           </div>
-        `).join('')}
-      </div>
-    `;
+        `;
+      }
+      
+      html += '</div>';
+    }
+    
+    container.innerHTML = html;
     
   } catch (err) {
-    container.innerHTML = '<div class="text-center py-8 text-red-500">로드 실패</div>';
+    console.error('미수금 로드 에러:', err);
+    container.innerHTML = '<div class="text-center py-8 text-red-500">로드 실패: ' + err.message + '</div>';
   }
 }
 
 // ★★★ 묶음 입금 모달 ★★★
 async function openGroupPaymentModal(groupNo) {
   try {
+    showLoading(true);
     const groupInfo = await callGAS('getPaymentTarget', { targetNo: groupNo });
+    showLoading(false);
+    
+    console.log('묶음 정보:', groupInfo); // 디버깅용
     
     document.querySelectorAll('.modal-overlay').forEach(el => el.remove());
     
@@ -1352,46 +1385,51 @@ async function openGroupPaymentModal(groupNo) {
           <div class="flex justify-between items-start mb-4">
             <div>
               <h3 class="text-2xl font-black text-purple-600">📦 묶음 입금</h3>
-              <p class="text-sm text-gray-600 mt-1">${groupNo}</p>
+              <p class="text-lg text-purple-500 mt-1">${groupNo}</p>
             </div>
-            <button onclick="closeGroupPayModal()" class="text-gray-400 hover:text-gray-700 text-3xl">&times;</button>
+            <button onclick="closeGroupPayModal()" class="text-gray-400 hover:text-gray-700 text-4xl leading-none">&times;</button>
           </div>
 
-          <div class="bg-purple-50 p-4 rounded-lg mb-4">
-            <div class="text-sm mb-3">
-              <strong>${groupInfo.centerName || groupInfo.customerName}</strong> | ${groupInfo.phone}
+          <div class="bg-purple-50 p-4 rounded-lg mb-4 border border-purple-200">
+            <div class="text-sm mb-3 font-medium">
+              ${groupInfo.centerName || groupInfo.customerName} | ${groupInfo.phone}
             </div>
             <div class="space-y-2">
-              ${groupInfo.items.map(item => `
-                <div class="bg-white p-2 rounded border text-sm flex justify-between">
-                  <span>${item.asNo} - ${item.equipmentType}</span>
-                  <span class="${item.receivable > 0 ? 'text-red-600' : 'text-green-600'} font-bold">${(item.receivable || 0).toLocaleString()}원</span>
+              ${(groupInfo.items || []).map(item => `
+                <div class="bg-white p-3 rounded border flex justify-between items-center">
+                  <div>
+                    <span class="font-bold">${item.asNo}</span>
+                    <span class="text-sm text-gray-500 ml-2">${item.equipmentType || ''}</span>
+                  </div>
+                  <span class="${(item.receivable || 0) > 0 ? 'text-red-600' : 'text-green-600'} font-bold">
+                    ${(item.receivable || 0).toLocaleString()}원
+                  </span>
                 </div>
               `).join('')}
             </div>
           </div>
 
           <div class="grid grid-cols-3 gap-4 mb-4">
-            <div class="bg-blue-100 p-3 rounded text-center">
-              <div class="text-xs">총액</div>
-              <div class="font-bold">${(groupInfo.totalFee || 0).toLocaleString()}원</div>
+            <div class="bg-blue-100 p-3 rounded-lg text-center">
+              <div class="text-xs text-gray-600">총액</div>
+              <div class="font-bold text-lg">${(groupInfo.totalFee || 0).toLocaleString()}원</div>
             </div>
-            <div class="bg-green-100 p-3 rounded text-center">
-              <div class="text-xs">기입금</div>
-              <div class="font-bold text-green-600">${(groupInfo.paidAmount || 0).toLocaleString()}원</div>
+            <div class="bg-green-100 p-3 rounded-lg text-center">
+              <div class="text-xs text-gray-600">기입금</div>
+              <div class="font-bold text-lg text-green-600">${(groupInfo.paidAmount || 0).toLocaleString()}원</div>
             </div>
-            <div class="bg-red-100 p-3 rounded text-center">
-              <div class="text-xs">미수금</div>
-              <div class="font-bold text-red-600">${(groupInfo.receivable || 0).toLocaleString()}원</div>
+            <div class="bg-red-100 p-3 rounded-lg text-center">
+              <div class="text-xs text-gray-600">미수금</div>
+              <div class="font-bold text-lg text-red-600">${(groupInfo.receivable || 0).toLocaleString()}원</div>
             </div>
           </div>
 
           <div class="bg-gray-50 p-4 rounded-lg mb-4">
-            <div class="grid md:grid-cols-2 gap-4">
+            <h4 class="font-bold mb-3">입금 정보</h4>
+            <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="label">입금액 *</label>
-                <input type="number" id="groupPayAmount" value="${groupInfo.receivable || 0}" class="input">
-                <button type="button" onclick="document.getElementById('groupPayAmount').value='${groupInfo.receivable || 0}'" class="text-xs text-blue-600 mt-1 underline cursor-pointer">전액 입력</button>
+                <input type="number" id="groupPayAmount" value="${groupInfo.receivable || 0}" class="input text-lg font-bold">
               </div>
               <div>
                 <label class="label">입금일</label>
@@ -1405,25 +1443,29 @@ async function openGroupPaymentModal(groupNo) {
               </div>
               <div>
                 <label class="label">비고</label>
-                <input type="text" id="groupPayNote" class="input" placeholder="비고">
+                <input type="text" id="groupPayNote" class="input" placeholder="비고 (선택)">
               </div>
             </div>
           </div>
 
           <div class="flex gap-3">
-            <button onclick="submitGroupPayment('${groupNo}')" class="btn btn-success flex-1 py-3 text-lg">💰 입금 처리</button>
-            <button onclick="closeGroupPayModal()" class="btn btn-secondary py-3">취소</button>
+            <button onclick="submitGroupPayment('${groupNo}')" class="btn btn-success flex-1 py-4 text-xl font-bold">
+              💰 입금 처리
+            </button>
+            <button onclick="closeGroupPayModal()" class="btn btn-secondary py-4 px-6">취소</button>
           </div>
         </div>
       </div>
     `;
     
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
     document.getElementById('groupPayModal').addEventListener('click', function(e) {
       if (e.target === this) closeGroupPayModal();
     });
     
   } catch (err) {
+    showLoading(false);
     alert('묶음 정보 조회 실패: ' + err.message);
   }
 }
@@ -1434,22 +1476,27 @@ function closeGroupPayModal() {
 
 async function submitGroupPayment(groupNo) {
   const amount = Number(document.getElementById('groupPayAmount')?.value || 0);
-  if (amount <= 0) return alert('입금액을 입력하세요.');
+  if (amount <= 0) {
+    alert('입금액을 입력하세요.');
+    return;
+  }
 
   const data = {
-    groupNo,
-    amount,
-    payDate: document.getElementById('groupPayDate')?.value,
-    payMethod: document.getElementById('groupPayMethod')?.value,
+    groupNo: groupNo,
+    amount: amount,
+    payDate: document.getElementById('groupPayDate')?.value || new Date().toISOString().slice(0,10),
+    payMethod: document.getElementById('groupPayMethod')?.value || '현금',
     note: document.getElementById('groupPayNote')?.value || '묶음입금'
   };
 
   try {
     await callGAS('addGroupPayment', { data: encodeURIComponent(JSON.stringify(data)) });
-    alert('✅ 묶음 입금 완료');
+    alert('✅ 묶음 입금 완료!');
     closeGroupPayModal();
-    loadReceivableData(); // 목록 새로고침
-  } catch (err) {}
+    loadReceivableData();
+  } catch (err) {
+    alert('입금 처리 실패: ' + err.message);
+  }
 }
 // ★★★ 묶음 입금 모달 ★★★
 async function openGroupPaymentModal(groupNo) {
