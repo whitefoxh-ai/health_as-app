@@ -9,28 +9,68 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
   
   <style>
-    body { font-family: 'Noto Sans KR', sans-serif; -webkit-tap-highlight-color: transparent; }
-    .loading-spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
+    * { font-family: 'Noto Sans KR', sans-serif; }
+    body { -webkit-tap-highlight-color: transparent; }
+    
+    .loading-spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #3b82f6;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+    }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    .tab-active { border-bottom: 3px solid #3b82f6; color: #3b82f6; font-weight: 700; }
-    .btn { @apply font-bold py-2 px-4 rounded transition cursor-pointer; }
-    .btn-primary { @apply bg-blue-600 hover:bg-blue-700 text-white; }
-    .btn-secondary { @apply bg-gray-500 hover:bg-gray-600 text-white; }
-    .btn-danger { @apply bg-red-600 hover:bg-red-700 text-white; }
-    .btn-success { @apply bg-green-600 hover:bg-green-700 text-white; }
-    .card { @apply bg-white rounded-lg shadow-md p-5 mb-4; }
-    .input { @apply w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent; }
-    .label { @apply block text-sm font-bold text-gray-700 mb-1; }
-    .modal-overlay { @apply fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4; }
-    .modal-content { @apply bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6; }
+    
+    .tab-active { border-bottom: 3px solid #3b82f6; color: #3b82f6; font-weight: 700; background: #eff6ff; }
+    
+    .btn { font-weight: bold; padding: 0.5rem 1rem; border-radius: 0.5rem; transition: all 0.2s; cursor: pointer; }
+    .btn-primary { background: #2563eb; color: white; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-secondary { background: #6b7280; color: white; }
+    .btn-secondary:hover { background: #4b5563; }
+    .btn-danger { background: #dc2626; color: white; }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-success { background: #16a34a; color: white; }
+    .btn-success:hover { background: #15803d; }
+    
+    .card { background: white; border-radius: 0.75rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); padding: 1.25rem; margin-bottom: 1rem; }
+    .input { width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; }
+    .input:focus { outline: none; ring: 2px; ring-color: #3b82f6; border-color: #3b82f6; }
+    .label { display: block; font-size: 0.875rem; font-weight: 700; color: #374151; margin-bottom: 0.25rem; }
+    
+    /* 모달 스타일 - 중요! */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .modal-content {
+      background: white;
+      border-radius: 1rem;
+      max-width: 900px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 1.5rem;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
   </style>
 </head>
 
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-gray-100 min-h-screen">
 
 <!-- 로딩 오버레이 -->
 <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center" style="display:none;">
-  <div class="bg-white p-8 rounded-lg shadow-2xl text-center">
+  <div class="bg-white p-8 rounded-xl shadow-2xl text-center">
     <div class="loading-spinner mx-auto mb-4"></div>
     <p class="text-gray-700 font-bold text-lg">처리 중...</p>
   </div>
@@ -45,21 +85,20 @@
     <p id="todayDate" class="text-sm opacity-90"></p>
   </header>
 
-  <!-- 대시보드 요약 -->
-  <div id="dashboardSummary" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"></div>
-
   <!-- 탭 메뉴 -->
-  <div class="bg-white rounded-lg shadow-md mb-6 overflow-x-auto">
+  <div class="bg-white rounded-xl shadow-md mb-6 overflow-x-auto">
     <div class="flex border-b">
-      <button class="tab-btn tab-active px-6 py-3 font-medium whitespace-nowrap" data-tab="reception">📝 신규접수</button>
-      <button class="tab-btn px-6 py-3 font-medium whitespace-nowrap" data-tab="list">📋 AS목록</button>
-      <button class="tab-btn px-6 py-3 font-medium whitespace-nowrap" data-tab="receivable">💰 미수금</button>
-      <button class="tab-btn px-6 py-3 font-medium whitespace-nowrap" data-tab="monthly">📊 월마감</button>
+      <button class="tab-btn tab-active px-6 py-4 font-medium whitespace-nowrap" data-tab="home">🏠 홈</button>
+      <button class="tab-btn px-6 py-4 font-medium whitespace-nowrap" data-tab="reception">📝 신규접수</button>
+      <button class="tab-btn px-6 py-4 font-medium whitespace-nowrap" data-tab="list">📋 AS목록</button>
+      <button class="tab-btn px-6 py-4 font-medium whitespace-nowrap" data-tab="receivable">💰 미수금</button>
+      <button class="tab-btn px-6 py-4 font-medium whitespace-nowrap" data-tab="monthly">📊 월마감</button>
     </div>
   </div>
 
   <!-- 탭 컨텐츠 -->
-  <div id="tab-reception" class="tab-content"></div>
+  <div id="tab-home" class="tab-content"></div>
+  <div id="tab-reception" class="tab-content" style="display:none;"></div>
   <div id="tab-list" class="tab-content" style="display:none;"></div>
   <div id="tab-receivable" class="tab-content" style="display:none;"></div>
   <div id="tab-monthly" class="tab-content" style="display:none;"></div>
@@ -74,10 +113,10 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbzYYJaYo-nayr52WUVP01C7
 
 let MASTER_DATA = null;
 let CACHE_TIMESTAMP = 0;
-let CURRENT_ITEMS = []; // 다건 접수용
+let itemIndex = 0; // 장비 인덱스 (전역)
 
 // =====================================================
-// GET 전용 API 호출 (POST 완전 제거)
+// GET 전용 API 호출
 // =====================================================
 async function callGAS(action, params = {}) {
   try {
@@ -103,15 +142,10 @@ async function callGAS(action, params = {}) {
       headers: { 'Accept': 'application/json' }
     });
 
-    if (!response.ok) {
-      throw new Error(`서버 오류 (HTTP ${response.status})`);
-    }
+    if (!response.ok) throw new Error(`서버 오류 (HTTP ${response.status})`);
 
     const data = await response.json();
-
-    if (data.error) {
-      throw new Error(data.message || '알 수 없는 오류');
-    }
+    if (data.error) throw new Error(data.message || '알 수 없는 오류');
 
     if (action === 'getInitData') {
       localStorage.setItem('cachedInitData', JSON.stringify(data));
@@ -147,40 +181,111 @@ async function initApp() {
     const initData = await callGAS('getInitData');
     MASTER_DATA = initData.master;
     
-    renderDashboard(initData.dashboard);
-    renderReceptionTab();
+    renderHomeTab(initData.dashboard);
 
   } catch (err) {
     alert('시스템 초기화 실패\n새로고침(F5) 해주세요.\n\n' + err.message);
   }
 }
 
-function renderDashboard(dash) {
-  const container = document.getElementById('dashboardSummary');
+// =====================================================
+// 홈화면 (대시보드)
+// =====================================================
+function renderHomeTab(dash) {
+  const container = document.getElementById('tab-home');
   container.innerHTML = `
-    <div class="card text-center bg-blue-50 hover:shadow-lg transition">
-      <div class="text-4xl font-black text-blue-600 mb-1">${dash.todayCount || 0}</div>
-      <div class="text-xs text-gray-600">오늘 접수</div>
+    <!-- 대시보드 요약 -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div class="card text-center bg-blue-50 hover:shadow-lg transition cursor-pointer" onclick="switchTab('reception')">
+        <div class="text-4xl font-black text-blue-600 mb-1">${dash?.todayCount || 0}</div>
+        <div class="text-sm text-gray-600">오늘 접수</div>
+      </div>
+      <div class="card text-center bg-green-50 hover:shadow-lg transition">
+        <div class="text-2xl font-black text-green-600 mb-1">${(dash?.monthSales || 0).toLocaleString()}<span class="text-base">원</span></div>
+        <div class="text-sm text-gray-600">이번달 매출</div>
+      </div>
+      <div class="card text-center bg-orange-50 hover:shadow-lg transition cursor-pointer" onclick="switchTab('receivable')">
+        <div class="text-2xl font-black text-orange-600 mb-1">${(dash?.totalReceivable || 0).toLocaleString()}<span class="text-base">원</span></div>
+        <div class="text-sm text-gray-600">총 미수금</div>
+      </div>
+      <div class="card text-center bg-purple-50 hover:shadow-lg transition cursor-pointer" onclick="switchTab('list')">
+        <div class="text-4xl font-black text-purple-600 mb-1">${dash?.openCount || 0}</div>
+        <div class="text-sm text-gray-600">진행중</div>
+      </div>
     </div>
-    <div class="card text-center bg-green-50 hover:shadow-lg transition">
-      <div class="text-3xl font-black text-green-600 mb-1">${(dash.monthSales || 0).toLocaleString()}<span class="text-lg">원</span></div>
-      <div class="text-xs text-gray-600">이번달 매출</div>
+
+    <!-- 오늘 방문 예정 -->
+    <div class="card">
+      <h3 class="text-xl font-black text-gray-800 mb-4">📅 오늘 방문 예정 (${dash?.todayVisitCount || 0}건)</h3>
+      ${dash?.todaySchedule?.length > 0 ? `
+        <div class="space-y-3">
+          ${dash.todaySchedule.map(item => `
+            <div class="border-2 rounded-lg p-4 ${item.priority === '긴급' ? 'border-red-400 bg-red-50' : 'border-gray-200'} hover:shadow-md transition">
+              <div class="flex justify-between items-start mb-2">
+                <div>
+                  <span class="font-bold text-blue-600">${item.asNo}</span>
+                  ${item.priority === '긴급' ? '<span class="ml-2 text-xs bg-red-500 text-white px-2 py-1 rounded font-bold">🚨 긴급</span>' : ''}
+                </div>
+                <span class="text-sm font-bold px-2 py-1 rounded ${getStatusColor(item.status)}">${item.status}</span>
+              </div>
+              <div class="text-sm font-medium">${item.centerName || item.customerName}</div>
+              <div class="text-sm text-gray-600">${item.equipmentType} - ${item.symptom}</div>
+              <div class="text-xs text-gray-500 mt-2">담당: ${item.technician || '미배정'}</div>
+            </div>
+          `).join('')}
+        </div>
+      ` : '<p class="text-gray-500 text-center py-8">오늘 방문 예정 건이 없습니다.</p>'}
     </div>
-    <div class="card text-center bg-orange-50 hover:shadow-lg transition">
-      <div class="text-3xl font-black text-orange-600 mb-1">${(dash.totalReceivable || 0).toLocaleString()}<span class="text-lg">원</span></div>
-      <div class="text-xs text-gray-600">총 미수금</div>
-    </div>
-    <div class="card text-center bg-purple-50 hover:shadow-lg transition">
-      <div class="text-4xl font-black text-purple-600 mb-1">${dash.openCount || 0}</div>
-      <div class="text-xs text-gray-600">진행중</div>
+
+    <!-- 빠른 메뉴 -->
+    <div class="grid md:grid-cols-4 gap-4">
+      <button onclick="switchTab('reception')" class="card bg-blue-600 text-white text-center hover:bg-blue-700 transition">
+        <div class="text-3xl mb-2">📝</div>
+        <div class="font-bold">신규 접수</div>
+      </button>
+      <button onclick="switchTab('list')" class="card bg-green-600 text-white text-center hover:bg-green-700 transition">
+        <div class="text-3xl mb-2">📋</div>
+        <div class="font-bold">AS 목록</div>
+      </button>
+      <button onclick="switchTab('receivable')" class="card bg-orange-600 text-white text-center hover:bg-orange-700 transition">
+        <div class="text-3xl mb-2">💰</div>
+        <div class="font-bold">미수금 관리</div>
+      </button>
+      <button onclick="switchTab('monthly')" class="card bg-purple-600 text-white text-center hover:bg-purple-700 transition">
+        <div class="text-3xl mb-2">📊</div>
+        <div class="font-bold">월마감</div>
+      </button>
     </div>
   `;
 }
 
+// 탭 전환 함수
+function switchTab(tabName) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-active'));
+  document.querySelector(`[data-tab="${tabName}"]`)?.classList.add('tab-active');
+  
+  document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+  document.getElementById('tab-' + tabName).style.display = 'block';
+  
+  if (tabName === 'home') loadHomeTab();
+  if (tabName === 'reception') renderReceptionTab();
+  if (tabName === 'list') renderListTab();
+  if (tabName === 'receivable') renderReceivableTab();
+  if (tabName === 'monthly') renderMonthlyTab();
+}
+
+async function loadHomeTab() {
+  const dash = await callGAS('refreshDashboard');
+  renderHomeTab(dash);
+}
+
 // =====================================================
-// 신규접수 탭 (다건 + 고객조회 + 자재비 계산 포함)
+// 신규접수 탭 (수량x단가 계산 + 장비번호 초기화 포함)
 // =====================================================
 function renderReceptionTab() {
+  // ★★★ 중요: 탭 전환시 장비 인덱스 초기화 ★★★
+  itemIndex = 0;
+  
   const container = document.getElementById('tab-reception');
   container.innerHTML = `
     <div class="card">
@@ -202,7 +307,7 @@ function renderReceptionTab() {
       <!-- 고객 정보 -->
       <div class="grid md:grid-cols-2 gap-4 mb-4">
         <div>
-          <label class="label">연락처 (필수)</label>
+          <label class="label">연락처 (필수) *</label>
           <input type="text" id="phoneInput" placeholder="010-0000-0000" class="input">
         </div>
         <div>
@@ -219,20 +324,20 @@ function renderReceptionTab() {
             ${(MASTER_DATA?.customerTypes || ['헬스장']).map(t => `<option>${t}</option>`).join('')}
           </select>
         </div>
-        <div>
+        <div class="md:col-span-2">
           <label class="label">주소</label>
           <input type="text" id="addressInput" placeholder="주소" class="input">
         </div>
+      </div>
+
+      <!-- 공통 정보 -->
+      <div class="grid md:grid-cols-4 gap-4 mb-4 bg-gray-50 p-4 rounded-lg">
         <div>
           <label class="label">접수 채널</label>
           <select id="channelSelect" class="input">
             ${(MASTER_DATA?.channels || ['전화']).map(c => `<option>${c}</option>`).join('')}
           </select>
         </div>
-      </div>
-
-      <!-- 공통 정보 -->
-      <div class="grid md:grid-cols-3 gap-4 mb-4 bg-gray-50 p-4 rounded-lg">
         <div>
           <label class="label">담당기사</label>
           <select id="technicianSelect" class="input">
@@ -259,10 +364,18 @@ function renderReceptionTab() {
           <button onclick="addEquipmentItem()" class="btn btn-success text-sm">+ 장비 추가</button>
         </div>
         <div id="equipmentItemsContainer"></div>
+        
+        <!-- 전체 합계 -->
+        <div class="bg-white p-4 rounded-lg mt-4 border-2 border-yellow-400">
+          <div class="flex justify-between items-center text-lg">
+            <strong>📊 전체 합계</strong>
+            <strong class="text-2xl text-blue-600" id="grandTotal">0원</strong>
+          </div>
+        </div>
       </div>
 
       <!-- 선입금 -->
-      <div class="grid md:grid-cols-2 gap-4 mb-4 bg-green-50 p-4 rounded-lg">
+      <div class="grid md:grid-cols-3 gap-4 mb-4 bg-green-50 p-4 rounded-lg">
         <div>
           <label class="label">선입금 금액</label>
           <input type="number" id="paidAmountInput" placeholder="0" class="input">
@@ -272,6 +385,10 @@ function renderReceptionTab() {
           <select id="payMethodSelect" class="input">
             ${(MASTER_DATA?.payMethods || ['현금']).map(m => `<option>${m}</option>`).join('')}
           </select>
+        </div>
+        <div>
+          <label class="label">입금예정일</label>
+          <input type="date" id="dueDateInput" class="input">
         </div>
       </div>
 
@@ -286,7 +403,6 @@ function renderReceptionTab() {
   addEquipmentItem();
 }
 
-let itemIndex = 0;
 function addEquipmentItem() {
   const container = document.getElementById('equipmentItemsContainer');
   const idx = itemIndex++;
@@ -294,13 +410,13 @@ function addEquipmentItem() {
   const itemHtml = `
     <div class="border-2 border-gray-300 rounded-lg p-4 mb-3 bg-white" id="item-${idx}">
       <div class="flex justify-between items-center mb-3">
-        <strong class="text-blue-600">장비 #${idx + 1}</strong>
-        ${idx > 0 ? `<button onclick="removeEquipmentItem(${idx})" class="text-red-600 font-bold text-sm">✕ 삭제</button>` : ''}
+        <strong class="text-blue-600 text-lg">장비 #${idx + 1}</strong>
+        ${idx > 0 ? `<button onclick="removeEquipmentItem(${idx})" class="btn btn-danger text-sm">✕ 삭제</button>` : ''}
       </div>
       
-      <div class="grid md:grid-cols-2 gap-3 mb-3">
+      <div class="grid md:grid-cols-4 gap-3 mb-3">
         <div>
-          <label class="label">기구종류 (필수)</label>
+          <label class="label">기구종류 *</label>
           <select id="equipType-${idx}" class="input">
             ${(MASTER_DATA?.equipmentTypes || ['런닝머신']).map(e => `<option>${e}</option>`).join('')}
           </select>
@@ -322,31 +438,46 @@ function addEquipmentItem() {
       </div>
 
       <div class="mb-3">
-        <label class="label">고장증상 (필수)</label>
+        <label class="label">고장증상 (필수) *</label>
         <textarea id="symptom-${idx}" class="input" rows="2" placeholder="고장증상 상세 입력"></textarea>
       </div>
 
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-        <div>
-          <label class="label">AS비용</label>
-          <input type="number" id="asFee-${idx}" class="input" placeholder="0" oninput="calcItemTotal(${idx})">
-        </div>
-        <div>
-          <label class="label">자재비</label>
-          <input type="number" id="materialCost-${idx}" class="input" placeholder="0" oninput="calcItemTotal(${idx})">
-        </div>
-        <div>
-          <label class="label">출장비</label>
-          <input type="number" id="travelCost-${idx}" class="input" placeholder="0" oninput="calcItemTotal(${idx})">
-        </div>
-        <div>
-          <label class="label">기타비용</label>
-          <input type="number" id="otherCost-${idx}" class="input" placeholder="0" oninput="calcItemTotal(${idx})">
+      <!-- ★★★ 수량 x 단가 계산 ★★★ -->
+      <div class="bg-blue-50 p-3 rounded-lg mb-3">
+        <label class="label text-blue-700">💰 AS비용 계산 (수량 × 단가)</label>
+        <div class="grid grid-cols-3 gap-3 mt-2">
+          <div>
+            <label class="text-xs text-gray-600">수량</label>
+            <input type="number" id="qty-${idx}" value="1" min="1" class="input" oninput="calcAsFee(${idx})">
+          </div>
+          <div>
+            <label class="text-xs text-gray-600">단가 (원)</label>
+            <input type="number" id="unitPrice-${idx}" placeholder="0" class="input" oninput="calcAsFee(${idx})">
+          </div>
+          <div>
+            <label class="text-xs text-gray-600">AS비용 (자동계산)</label>
+            <input type="number" id="asFee-${idx}" placeholder="0" class="input bg-yellow-100 font-bold" readonly>
+          </div>
         </div>
       </div>
 
-      <div class="bg-gray-100 p-3 rounded text-right">
-        <strong class="text-lg">장비별 총액: <span id="itemTotal-${idx}" class="text-blue-600">0원</span></strong>
+      <div class="grid grid-cols-3 gap-3 mb-3">
+        <div>
+          <label class="label">자재비</label>
+          <input type="number" id="materialCost-${idx}" placeholder="0" class="input" oninput="calcItemTotal(${idx})">
+        </div>
+        <div>
+          <label class="label">출장비</label>
+          <input type="number" id="travelCost-${idx}" placeholder="0" class="input" oninput="calcItemTotal(${idx})">
+        </div>
+        <div>
+          <label class="label">기타비용</label>
+          <input type="number" id="otherCost-${idx}" placeholder="0" class="input" oninput="calcItemTotal(${idx})">
+        </div>
+      </div>
+
+      <div class="bg-gray-100 p-3 rounded-lg text-right">
+        <strong class="text-lg">장비 소계: <span id="itemTotal-${idx}" class="text-blue-600 text-xl">0원</span></strong>
       </div>
     </div>
   `;
@@ -356,6 +487,19 @@ function addEquipmentItem() {
 
 function removeEquipmentItem(idx) {
   document.getElementById(`item-${idx}`)?.remove();
+  calcGrandTotal();
+}
+
+// ★★★ 수량 × 단가 = AS비용 자동 계산 ★★★
+function calcAsFee(idx) {
+  const qty = Number(document.getElementById(`qty-${idx}`)?.value || 1);
+  const unitPrice = Number(document.getElementById(`unitPrice-${idx}`)?.value || 0);
+  const asFee = qty * unitPrice;
+  
+  const asFeeEl = document.getElementById(`asFee-${idx}`);
+  if (asFeeEl) asFeeEl.value = asFee;
+  
+  calcItemTotal(idx);
 }
 
 function calcItemTotal(idx) {
@@ -367,6 +511,20 @@ function calcItemTotal(idx) {
   
   const totalEl = document.getElementById(`itemTotal-${idx}`);
   if (totalEl) totalEl.textContent = total.toLocaleString() + '원';
+  
+  calcGrandTotal();
+}
+
+function calcGrandTotal() {
+  let grand = 0;
+  for (let i = 0; i < itemIndex; i++) {
+    const el = document.getElementById(`itemTotal-${i}`);
+    if (el) {
+      grand += Number(el.textContent.replace(/[^0-9]/g, '') || 0);
+    }
+  }
+  const grandEl = document.getElementById('grandTotal');
+  if (grandEl) grandEl.textContent = grand.toLocaleString() + '원';
 }
 
 async function searchCustomer() {
@@ -376,23 +534,30 @@ async function searchCustomer() {
   const result = await callGAS('lookupCustomer', { q: query });
   const container = document.getElementById('customerSearchResult');
 
-  if (!result || !result.customer) {
-    container.innerHTML = '<p class="text-gray-500">조회 결과가 없습니다.</p>';
+  if (!result || (!result.customer?.customerId && result.histories?.length === 0)) {
+    container.innerHTML = '<p class="text-gray-500">조회 결과가 없습니다. (신규 고객)</p>';
     return;
   }
 
-  const c = result.customer;
-  document.getElementById('phoneInput').value = c.phone || '';
-  document.getElementById('centerNameInput').value = c.centerName || '';
-  document.getElementById('customerNameInput').value = c.customerName || '';
-  document.getElementById('addressInput').value = c.address || '';
+  const c = result.customer || {};
+  if (c.phone) document.getElementById('phoneInput').value = c.phone;
+  if (c.centerName) document.getElementById('centerNameInput').value = c.centerName;
+  if (c.customerName) document.getElementById('customerNameInput').value = c.customerName;
+  if (c.address) document.getElementById('addressInput').value = c.address;
 
   container.innerHTML = `
-    <div class="bg-white p-3 rounded border border-green-500">
+    <div class="bg-white p-3 rounded border-2 border-green-500">
       <p class="text-green-700 font-bold mb-2">✅ 고객 정보 자동 입력됨</p>
-      <p class="text-sm text-gray-700">${c.centerName} | ${c.customerName} | ${c.phone}</p>
+      <p class="text-sm text-gray-700">${c.centerName || ''} | ${c.customerName || ''} | ${c.phone || ''}</p>
       ${result.histories?.length > 0 ? `
-        <p class="text-xs text-gray-500 mt-2">최근 AS: ${result.histories.length}건</p>
+        <div class="mt-3 pt-3 border-t">
+          <p class="text-xs text-gray-600 font-bold mb-2">최근 AS 이력 (${result.histories.length}건)</p>
+          ${result.histories.slice(0,3).map(h => `
+            <div class="text-xs text-gray-500 mb-1">
+              ${h.asNo} | ${h.status} | ${h.equipmentType} | ${h.receivedAt}
+            </div>
+          `).join('')}
+        </div>
       ` : ''}
     </div>
   `;
@@ -440,6 +605,7 @@ async function submitNewAS() {
     priority: document.getElementById('prioritySelect').value,
     paidAmount: Number(document.getElementById('paidAmountInput').value || 0),
     payMethod: document.getElementById('payMethodSelect').value,
+    dueDate: document.getElementById('dueDateInput').value,
     items
   };
 
@@ -452,8 +618,8 @@ async function submitNewAS() {
       alert(`✅ 접수 완료!\n\n총 ${result.count}건 접수\n접수번호: ${result.asNos.join(', ')}\n묶음번호: ${result.groupNo}`);
       resetReceptionForm();
       
-      const dash = await callGAS('refreshDashboard');
-      renderDashboard(dash);
+      // 홈 탭으로 이동하고 새로고침
+      switchTab('home');
     }
   } catch (err) {
     // 에러는 callGAS에서 처리
@@ -461,18 +627,8 @@ async function submitNewAS() {
 }
 
 function resetReceptionForm() {
-  document.getElementById('customerSearchInput').value = '';
-  document.getElementById('customerSearchResult').innerHTML = '';
-  document.getElementById('phoneInput').value = '';
-  document.getElementById('centerNameInput').value = '';
-  document.getElementById('customerNameInput').value = '';
-  document.getElementById('addressInput').value = '';
-  document.getElementById('visitDateInput').value = '';
-  document.getElementById('paidAmountInput').value = '';
-  
-  document.getElementById('equipmentItemsContainer').innerHTML = '';
-  itemIndex = 0;
-  addEquipmentItem();
+  // 탭 다시 렌더링 (장비 인덱스 초기화 포함)
+  renderReceptionTab();
 }
 
 // =====================================================
@@ -484,11 +640,15 @@ function renderListTab() {
     <div class="card">
       <h2 class="text-2xl font-black mb-4 text-gray-800">📋 AS 목록</h2>
       
-      <div class="grid md:grid-cols-3 gap-3 mb-4">
-        <input type="text" id="listSearchInput" placeholder="검색 (접수번호, 고객명, 센터명...)" class="input">
+      <div class="grid md:grid-cols-4 gap-3 mb-4">
+        <input type="text" id="listSearchInput" placeholder="검색 (접수번호, 고객명...)" class="input">
         <select id="listStatusFilter" class="input">
           <option value="">전체 상태</option>
           ${(MASTER_DATA?.statuses || []).map(s => `<option>${s}</option>`).join('')}
+        </select>
+        <select id="listTechFilter" class="input">
+          <option value="">전체 기사</option>
+          ${(MASTER_DATA?.technicians || []).map(t => `<option>${t}</option>`).join('')}
         </select>
         <button onclick="loadASList()" class="btn btn-primary">🔍 검색</button>
       </div>
@@ -503,12 +663,13 @@ function renderListTab() {
 async function loadASList() {
   const keyword = document.getElementById('listSearchInput')?.value || '';
   const status = document.getElementById('listStatusFilter')?.value || '';
+  const technician = document.getElementById('listTechFilter')?.value || '';
   const container = document.getElementById('asListContainer');
   
   container.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="loading-spinner mx-auto mb-3"></div>로딩 중...</div>';
 
   try {
-    const list = await callGAS('getASList', { keyword, status });
+    const list = await callGAS('getASList', { keyword, status, technician });
 
     if (!list || list.length === 0) {
       container.innerHTML = '<div class="text-center py-12 text-gray-500 text-lg">📭 검색 결과가 없습니다.</div>';
@@ -520,18 +681,18 @@ async function loadASList() {
         <div class="flex justify-between items-start mb-2">
           <div>
             <span class="font-black text-blue-600 text-lg">${item.asNo}</span>
-            ${item.groupNo ? `<span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded ml-2 font-bold">${item.groupSeq}/${item.groupCount}</span>` : ''}
+            ${item.groupNo ? `<span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded ml-2 font-bold">📦 ${item.groupSeq}/${item.groupCount}</span>` : ''}
           </div>
-          <span class="text-xs font-bold px-3 py-1 rounded ${getStatusColor(item.status)}">${item.status}</span>
+          <span class="text-sm font-bold px-3 py-1 rounded ${getStatusColor(item.status)}">${item.status}</span>
         </div>
         <div class="text-sm text-gray-700 mb-2 font-medium">
           <strong class="text-base">${item.centerName || item.customerName}</strong> | ${item.phone}
         </div>
         <div class="text-sm text-gray-600 mb-2">
-          ${item.equipmentType} - ${item.symptom}
+          ${item.equipmentType} ${item.brand ? '| ' + item.brand : ''} - ${item.symptom}
         </div>
         <div class="text-xs text-gray-500 flex justify-between items-center pt-2 border-t">
-          <span>${item.receivedAt}</span>
+          <span>${item.receivedAt} | ${item.technician || '미배정'}</span>
           <span class="font-bold text-base ${item.receivable > 0 ? 'text-red-600' : 'text-green-600'}">
             미수: ${(item.receivable || 0).toLocaleString()}원
           </span>
@@ -552,108 +713,184 @@ function getStatusColor(status) {
     '처리중': 'bg-purple-100 text-purple-700',
     '완료': 'bg-green-100 text-green-700',
     '취소': 'bg-gray-100 text-gray-700',
-    '보류': 'bg-red-100 text-red-700'
+    '보류': 'bg-red-100 text-red-700',
+    '재방문': 'bg-pink-100 text-pink-700'
   };
   return colors[status] || 'bg-gray-100 text-gray-700';
 }
 
+// ★★★ 모달 팝업 (묶음번호 + 묶음 내 모든 접수건 표시) ★★★
 async function viewASDetail(asNo) {
   try {
     const detail = await callGAS('getASDetail', { asNo });
     
+    // 묶음번호가 있으면 묶음 정보도 조회
+    let groupInfo = null;
+    if (detail.groupNo && detail.groupCount > 1) {
+      try {
+        groupInfo = await callGAS('getPaymentTarget', { targetNo: detail.groupNo });
+      } catch (e) {
+        // 묶음 조회 실패해도 계속 진행
+      }
+    }
+    
+    // 기존 모달 제거
+    document.querySelectorAll('.modal-overlay').forEach(el => el.remove());
+    
     const modalHtml = `
-      <div class="modal-overlay" onclick="closeModal(event)">
-        <div class="modal-content" onclick="event.stopPropagation()">
-          <div class="flex justify-between items-start mb-6">
-            <h3 class="text-3xl font-black text-blue-600">${detail.asNo}</h3>
-            <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-3xl font-bold">&times;</button>
+      <div class="modal-overlay" id="detailModal">
+        <div class="modal-content">
+          <div class="flex justify-between items-start mb-4">
+            <div>
+              <h3 class="text-3xl font-black text-blue-600">${detail.asNo}</h3>
+              ${detail.groupNo ? `
+                <div class="mt-2">
+                  <span class="inline-block bg-purple-100 text-purple-700 px-3 py-1 rounded-full font-bold text-sm">
+                    📦 묶음: ${detail.groupNo} (${detail.groupSeq}/${detail.groupCount})
+                  </span>
+                </div>
+              ` : ''}
+            </div>
+            <button onclick="closeDetailModal()" class="text-gray-400 hover:text-gray-700 text-4xl font-bold leading-none">&times;</button>
           </div>
+
+          <!-- ★★★ 묶음 접수 내역 (다건인 경우) ★★★ -->
+          ${groupInfo && groupInfo.items && groupInfo.items.length > 1 ? `
+            <div class="bg-purple-50 p-4 rounded-lg mb-4 border-2 border-purple-300">
+              <h4 class="font-black text-purple-700 mb-3">📦 묶음 접수 내역 (총 ${groupInfo.count}건)</h4>
+              <div class="space-y-2 max-h-60 overflow-y-auto">
+                ${groupInfo.items.map((item, idx) => `
+                  <div class="bg-white p-3 rounded-lg border-2 ${item.asNo === detail.asNo ? 'border-blue-500 bg-blue-50' : 'border-gray-200'} ${item.asNo !== detail.asNo ? 'cursor-pointer hover:bg-gray-50' : ''}" ${item.asNo !== detail.asNo ? `onclick="closeDetailModal(); viewASDetail('${item.asNo}')"` : ''}>
+                    <div class="flex justify-between items-start">
+                      <div>
+                        <span class="font-bold ${item.asNo === detail.asNo ? 'text-blue-600' : 'text-gray-700'}">${item.asNo}</span>
+                        <span class="text-xs ml-2 ${item.asNo === detail.asNo ? 'bg-blue-200 text-blue-700' : 'bg-gray-200 text-gray-600'} px-2 py-0.5 rounded font-bold">#${item.groupSeq}</span>
+                        ${item.asNo === detail.asNo ? '<span class="text-xs ml-2 text-blue-600">← 현재 보는 건</span>' : ''}
+                      </div>
+                      <span class="text-xs font-bold px-2 py-1 rounded ${getStatusColor(item.status)}">${item.status}</span>
+                    </div>
+                    <div class="text-sm text-gray-600 mt-1">${item.equipmentType} ${item.brand ? '| ' + item.brand : ''}</div>
+                    <div class="text-xs text-gray-500 mt-1 truncate">${item.symptom || ''}</div>
+                    <div class="flex justify-between text-xs mt-2 pt-2 border-t">
+                      <span>AS비용: <strong>${(item.asFee || 0).toLocaleString()}원</strong></span>
+                      <span>미수금: <strong class="${item.receivable > 0 ? 'text-red-600' : 'text-green-600'}">${(item.receivable || 0).toLocaleString()}원</strong></span>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+              <div class="mt-3 pt-3 border-t-2 border-purple-300 flex justify-between font-bold text-sm">
+                <span class="text-purple-700">묶음 총액: ${(groupInfo.totalFee || 0).toLocaleString()}원</span>
+                <span class="text-purple-700">입금: ${(groupInfo.paidAmount || 0).toLocaleString()}원</span>
+                <span class="text-red-600">묶음 미수금: ${(groupInfo.receivable || 0).toLocaleString()}원</span>
+              </div>
+            </div>
+          ` : ''}
           
+          <!-- 기본 정보 -->
           <div class="grid md:grid-cols-2 gap-4 mb-4">
-            <div class="bg-gray-50 p-3 rounded">
-              <div class="text-xs text-gray-600 mb-1">상태</div>
+            <div class="bg-gray-50 p-3 rounded-lg">
+              <div class="text-xs text-gray-500 mb-1">상태</div>
               <div class="font-bold text-lg">${detail.status}</div>
             </div>
-            <div class="bg-gray-50 p-3 rounded">
-              <div class="text-xs text-gray-600 mb-1">접수일시</div>
+            <div class="bg-gray-50 p-3 rounded-lg">
+              <div class="text-xs text-gray-500 mb-1">긴급도</div>
+              <div class="font-bold ${detail.priority === '긴급' ? 'text-red-600' : ''}">${detail.priority}</div>
+            </div>
+            <div class="bg-gray-50 p-3 rounded-lg">
+              <div class="text-xs text-gray-500 mb-1">접수일시</div>
               <div class="font-bold">${detail.receivedAt}</div>
             </div>
-            <div class="bg-gray-50 p-3 rounded">
-              <div class="text-xs text-gray-600 mb-1">센터명</div>
-              <div class="font-bold text-lg">${detail.centerName}</div>
-            </div>
-            <div class="bg-gray-50 p-3 rounded">
-              <div class="text-xs text-gray-600 mb-1">고객명</div>
-              <div class="font-bold">${detail.customerName}</div>
-            </div>
-            <div class="bg-gray-50 p-3 rounded">
-              <div class="text-xs text-gray-600 mb-1">연락처</div>
-              <div class="font-bold">${detail.phone}</div>
-            </div>
-            <div class="bg-gray-50 p-3 rounded">
-              <div class="text-xs text-gray-600 mb-1">담당기사</div>
-              <div class="font-bold">${detail.technician}</div>
+            <div class="bg-gray-50 p-3 rounded-lg">
+              <div class="text-xs text-gray-500 mb-1">담당기사</div>
+              <div class="font-bold">${detail.technician || '미배정'}</div>
             </div>
           </div>
 
           <div class="bg-blue-50 p-4 rounded-lg mb-4">
-            <div class="font-bold text-gray-700 mb-2">기구정보</div>
-            <div class="text-sm">${detail.equipmentType} / ${detail.brand} / ${detail.modelName}</div>
+            <div class="font-bold text-gray-700 mb-2">👤 고객정보</div>
+            <div class="grid md:grid-cols-2 gap-2 text-sm">
+              <div><strong>센터명:</strong> ${detail.centerName || '-'}</div>
+              <div><strong>고객명:</strong> ${detail.customerName || '-'}</div>
+              <div><strong>연락처:</strong> ${detail.phone || '-'}</div>
+              <div><strong>고객유형:</strong> ${detail.customerType || '-'}</div>
+              <div class="md:col-span-2"><strong>주소:</strong> ${detail.address || '-'}</div>
+            </div>
           </div>
 
           <div class="bg-yellow-50 p-4 rounded-lg mb-4">
-            <div class="font-bold text-gray-700 mb-2">고장증상</div>
-            <div class="text-sm">${detail.symptom}</div>
+            <div class="font-bold text-gray-700 mb-2">🔧 기구정보</div>
+            <div class="text-sm">${detail.equipmentType || '-'} / ${detail.brand || '-'} / ${detail.modelName || '-'}</div>
+            ${detail.serialNo ? `<div class="text-xs text-gray-500 mt-1">S/N: ${detail.serialNo}</div>` : ''}
+            ${detail.installLocation ? `<div class="text-xs text-gray-500 mt-1">설치위치: ${detail.installLocation}</div>` : ''}
           </div>
 
+          <div class="bg-red-50 p-4 rounded-lg mb-4">
+            <div class="font-bold text-gray-700 mb-2">⚠️ 고장증상</div>
+            <div class="text-sm">${detail.symptom || '-'}</div>
+            ${detail.detailContent ? `<div class="text-xs text-gray-500 mt-2 border-t pt-2">${detail.detailContent}</div>` : ''}
+          </div>
+
+          ${detail.repairDetail ? `
+            <div class="bg-green-50 p-4 rounded-lg mb-4">
+              <div class="font-bold text-gray-700 mb-2">🔧 수리내역</div>
+              <div class="text-sm">${detail.repairDetail}</div>
+            </div>
+          ` : ''}
+
           <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-            <div class="bg-gray-100 p-3 rounded text-center">
-              <div class="text-xs text-gray-600 mb-1">AS비용</div>
+            <div class="bg-white border p-3 rounded-lg text-center">
+              <div class="text-xs text-gray-500 mb-1">AS비용</div>
               <div class="font-bold text-lg">${(detail.asFee || 0).toLocaleString()}원</div>
             </div>
-            <div class="bg-gray-100 p-3 rounded text-center">
-              <div class="text-xs text-gray-600 mb-1">자재비</div>
+            <div class="bg-white border p-3 rounded-lg text-center">
+              <div class="text-xs text-gray-500 mb-1">자재비</div>
               <div class="font-bold">${(detail.materialCost || 0).toLocaleString()}원</div>
             </div>
-            <div class="bg-gray-100 p-3 rounded text-center">
-              <div class="text-xs text-gray-600 mb-1">출장비</div>
+            <div class="bg-white border p-3 rounded-lg text-center">
+              <div class="text-xs text-gray-500 mb-1">출장비</div>
               <div class="font-bold">${(detail.travelCost || 0).toLocaleString()}원</div>
             </div>
-            <div class="bg-gray-100 p-3 rounded text-center">
-              <div class="text-xs text-gray-600 mb-1">기타비용</div>
+            <div class="bg-white border p-3 rounded-lg text-center">
+              <div class="text-xs text-gray-500 mb-1">기타비용</div>
               <div class="font-bold">${(detail.otherCost || 0).toLocaleString()}원</div>
             </div>
           </div>
 
-          <div class="grid md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-green-50 p-4 rounded-lg text-center">
+          <div class="grid md:grid-cols-3 gap-4 mb-4">
+            <div class="bg-green-100 p-4 rounded-lg text-center">
               <div class="text-xs text-gray-600 mb-1">입금액</div>
-              <div class="font-bold text-2xl text-green-600">${(detail.paidAmount || 0).toLocaleString()}원</div>
+              <div class="font-black text-2xl text-green-600">${(detail.paidAmount || 0).toLocaleString()}원</div>
             </div>
-            <div class="bg-${detail.receivable > 0 ? 'red' : 'blue'}-50 p-4 rounded-lg text-center">
+            <div class="bg-${detail.receivable > 0 ? 'red' : 'blue'}-100 p-4 rounded-lg text-center">
               <div class="text-xs text-gray-600 mb-1">미수금</div>
-              <div class="font-bold text-2xl text-${detail.receivable > 0 ? 'red' : 'blue'}-600">${(detail.receivable || 0).toLocaleString()}원</div>
+              <div class="font-black text-2xl text-${detail.receivable > 0 ? 'red' : 'blue'}-600">${(detail.receivable || 0).toLocaleString()}원</div>
             </div>
-            <div class="bg-purple-50 p-4 rounded-lg text-center">
+            <div class="bg-purple-100 p-4 rounded-lg text-center">
               <div class="text-xs text-gray-600 mb-1">입금상태</div>
-              <div class="font-bold text-lg text-purple-600">${detail.paymentStatus}</div>
+              <div class="font-bold text-lg text-purple-700">${detail.paymentStatus || '-'}</div>
             </div>
           </div>
 
           ${detail.payments?.length > 0 ? `
-            <div class="bg-gray-50 p-4 rounded-lg mb-6">
-              <div class="font-bold mb-3">💰 입금 내역</div>
-              ${detail.payments.map(p => `
-                <div class="text-sm mb-2 flex justify-between">
-                  <span>${p.payDate} | ${p.payMethod}</span>
-                  <strong class="text-green-600">${(p.amount || 0).toLocaleString()}원</strong>
-                </div>
-              `).join('')}
+            <div class="bg-gray-50 p-4 rounded-lg mb-4">
+              <div class="font-bold mb-3">💰 입금 내역 (${detail.payments.length}건)</div>
+              <div class="space-y-2 max-h-40 overflow-y-auto">
+                ${detail.payments.map(p => `
+                  <div class="bg-white p-2 rounded border flex justify-between items-center text-sm">
+                    <span>${p.payDate} | ${p.payMethod} ${p.note ? '| ' + p.note : ''}</span>
+                    <strong class="text-green-600">${(p.amount || 0).toLocaleString()}원</strong>
+                  </div>
+                `).join('')}
+              </div>
             </div>
           ` : ''}
+
+          <div class="text-xs text-gray-400 mb-4">
+            최근수정: ${detail.updatedAt || '-'} | 접수채널: ${detail.channel || '-'} | 방문예정: ${detail.visitDate || '-'} | 완료일: ${detail.completeDate || '-'}
+          </div>
           
-          <div class="flex gap-3">
-            <button onclick="closeModal()" class="btn btn-secondary flex-1">닫기</button>
+          <div class="flex gap-3 mt-6">
+            <button onclick="closeDetailModal()" class="btn btn-secondary flex-1 py-3">닫기</button>
           </div>
         </div>
       </div>
@@ -661,9 +898,18 @@ async function viewASDetail(asNo) {
     
     document.body.insertAdjacentHTML('beforeend', modalHtml);
     
+    // 모달 외부 클릭시 닫기
+    document.getElementById('detailModal').addEventListener('click', function(e) {
+      if (e.target === this) closeDetailModal();
+    });
+    
   } catch (err) {
     // 에러는 callGAS에서 처리
   }
+}
+
+function closeDetailModal() {
+  document.getElementById('detailModal')?.remove();
 }
 
 // =====================================================
@@ -674,6 +920,23 @@ function renderReceivableTab() {
   container.innerHTML = `
     <div class="card">
       <h2 class="text-2xl font-black mb-4 text-gray-800">💰 미수금 관리</h2>
+      
+      <div class="grid md:grid-cols-4 gap-3 mb-4">
+        <input type="text" id="receivableSearchInput" placeholder="검색 (접수번호, 고객명...)" class="input">
+        <select id="receivableDueTypeFilter" class="input">
+          <option value="전체">전체</option>
+          <option value="연체">연체</option>
+          <option value="오늘입금예정">오늘 입금예정</option>
+          <option value="미입금">미입금</option>
+          <option value="일부입금">일부입금</option>
+        </select>
+        <select id="receivableTechFilter" class="input">
+          <option value="">전체 기사</option>
+          ${(MASTER_DATA?.technicians || []).map(t => `<option>${t}</option>`).join('')}
+        </select>
+        <button onclick="loadReceivableData()" class="btn btn-primary">🔍 조회</button>
+      </div>
+      
       <div id="receivableContainer">로딩 중...</div>
     </div>
   `;
@@ -683,44 +946,63 @@ function renderReceivableTab() {
 
 async function loadReceivableData() {
   const container = document.getElementById('receivableContainer');
+  const keyword = document.getElementById('receivableSearchInput')?.value || '';
+  const dueType = document.getElementById('receivableDueTypeFilter')?.value || '전체';
+  const technician = document.getElementById('receivableTechFilter')?.value || '';
+  
+  container.innerHTML = '<div class="text-center py-8"><div class="loading-spinner mx-auto mb-3"></div>로딩 중...</div>';
   
   try {
-    const data = await callGAS('getReceivableScreenData', {});
+    const data = await callGAS('getReceivableScreenData', { keyword, dueType, technician });
     
     container.innerHTML = `
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div class="card bg-red-50 text-center">
-          <div class="text-3xl font-black text-red-600 mb-1">${(data.summary.totalReceivable || 0).toLocaleString()}<span class="text-lg">원</span></div>
+          <div class="text-2xl font-black text-red-600 mb-1">${(data.summary.totalReceivable || 0).toLocaleString()}<span class="text-sm">원</span></div>
           <div class="text-xs text-gray-600">총 미수금</div>
         </div>
         <div class="card bg-orange-50 text-center">
-          <div class="text-3xl font-black text-orange-600 mb-1">${data.summary.overdueCount || 0}</div>
-          <div class="text-xs text-gray-600">연체 건수</div>
+          <div class="text-2xl font-black text-orange-600 mb-1">${data.summary.overdueCount || 0}<span class="text-sm">건</span></div>
+          <div class="text-xs text-gray-600">연체</div>
         </div>
         <div class="card bg-blue-50 text-center">
-          <div class="text-3xl font-black text-blue-600 mb-1">${data.summary.unpaidCount || 0}</div>
-          <div class="text-xs text-gray-600">미입금 건수</div>
+          <div class="text-2xl font-black text-blue-600 mb-1">${data.summary.itemCount || 0}<span class="text-sm">건</span></div>
+          <div class="text-xs text-gray-600">미수 건수</div>
         </div>
         <div class="card bg-green-50 text-center">
-          <div class="text-2xl font-black text-green-600 mb-1">${(data.summary.thisMonthCollection || 0).toLocaleString()}<span class="text-sm">원</span></div>
+          <div class="text-xl font-black text-green-600 mb-1">${(data.summary.thisMonthCollection || 0).toLocaleString()}<span class="text-xs">원</span></div>
           <div class="text-xs text-gray-600">이번달 입금</div>
         </div>
       </div>
       
-      <div class="space-y-2">
-        ${data.list.slice(0, 50).map(item => `
-          <div class="border-2 rounded-lg p-4 ${item.isOverdue ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-white'} hover:shadow-lg transition">
+      <div class="space-y-3">
+        ${data.list.length === 0 ? '<div class="text-center py-12 text-gray-500">📭 미수금 내역이 없습니다.</div>' : ''}
+        ${data.list.slice(0, 100).map(item => `
+          <div class="border-2 rounded-lg p-4 ${item.isOverdue ? 'border-red-400 bg-red-50' : item.isDueToday ? 'border-orange-400 bg-orange-50' : 'border-gray-200 bg-white'} hover:shadow-lg cursor-pointer transition" onclick="viewASDetail('${item.asNo}')">
             <div class="flex justify-between items-start mb-2">
               <div>
-                <span class="font-black text-lg">${item.asNo}</span>
-                <span class="text-sm text-gray-600 ml-3">${item.centerName} | ${item.customerName}</span>
+                <span class="font-black text-lg text-blue-600">${item.asNo}</span>
+                ${item.groupNo ? `<span class="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded font-bold">📦 ${item.groupSeq}/${item.groupCount}</span>` : ''}
               </div>
-              <span class="font-black text-xl text-red-600">${(item.receivable || 0).toLocaleString()}원</span>
+              <div class="text-right">
+                <div class="font-black text-xl text-red-600">${(item.receivable || 0).toLocaleString()}원</div>
+                <div class="text-xs text-gray-500">${item.paymentStatus}</div>
+              </div>
             </div>
-            <div class="text-sm text-gray-600">
-              ${item.equipmentType} | ${item.paymentStatus}
-              ${item.isOverdue ? `<span class="text-red-600 font-black ml-3">⚠️ 연체 ${item.daysOverdue}일</span>` : ''}
-              ${item.isDueToday ? `<span class="text-orange-600 font-black ml-3">📅 오늘 입금예정</span>` : ''}
+            <div class="text-sm font-medium text-gray-800 mb-1">
+              <strong>${item.centerName || item.customerName}</strong>
+              <span class="text-gray-500 ml-2">${item.phone}</span>
+            </div>
+            <div class="text-sm text-gray-600 mb-2">${item.equipmentType} - ${item.symptom || ''}</div>
+            <div class="flex justify-between items-center text-xs pt-2 border-t">
+              <div>
+                <span>AS비용: <strong>${(item.asFee || 0).toLocaleString()}원</strong></span>
+                <span class="ml-3">입금: <strong class="text-green-600">${(item.paidAmount || 0).toLocaleString()}원</strong></span>
+              </div>
+              <div>
+                ${item.isOverdue ? `<span class="text-red-600 font-black">⚠️ 연체 ${item.daysOverdue}일</span>` : ''}
+                ${item.isDueToday ? `<span class="text-orange-600 font-black">📅 오늘 입금예정</span>` : ''}
+              </div>
             </div>
           </div>
         `).join('')}
@@ -733,7 +1015,7 @@ async function loadReceivableData() {
 }
 
 // =====================================================
-// 월마감 탭 (완전판)
+// 월마감 탭
 // =====================================================
 function renderMonthlyTab() {
   const container = document.getElementById('tab-monthly');
@@ -744,7 +1026,7 @@ function renderMonthlyTab() {
       <div class="flex justify-between items-center mb-6">
         <h2 class="text-2xl font-black text-gray-800">📊 월마감 리포트</h2>
         <div class="flex gap-3">
-          <input type="month" id="monthInput" value="${currentMonth}" class="input" style="width:200px;">
+          <input type="month" id="monthInput" value="${currentMonth}" class="input" style="width:180px;">
           <button onclick="loadMonthlyReport()" class="btn btn-primary">📅 조회</button>
         </div>
       </div>
@@ -766,7 +1048,6 @@ async function loadMonthlyReport() {
     const report = await callGAS('getMonthlyClosingReport', { month });
     
     container.innerHTML = `
-      <!-- 요약 -->
       <div class="grid md:grid-cols-4 gap-4 mb-6">
         <div class="card bg-blue-50 text-center">
           <div class="text-xs text-gray-600 mb-2">접수 건수</div>
@@ -774,30 +1055,33 @@ async function loadMonthlyReport() {
         </div>
         <div class="card bg-green-50 text-center">
           <div class="text-xs text-gray-600 mb-2">총 매출</div>
-          <div class="text-3xl font-black text-green-600">${(report.summary.sales || 0).toLocaleString()}<span class="text-lg">원</span></div>
+          <div class="text-2xl font-black text-green-600">${(report.summary.sales || 0).toLocaleString()}<span class="text-base">원</span></div>
         </div>
         <div class="card bg-purple-50 text-center">
           <div class="text-xs text-gray-600 mb-2">순이익</div>
-          <div class="text-3xl font-black text-purple-600">${(report.summary.margin || 0).toLocaleString()}<span class="text-lg">원</span></div>
+          <div class="text-2xl font-black text-purple-600">${(report.summary.margin || 0).toLocaleString()}<span class="text-base">원</span></div>
         </div>
         <div class="card bg-orange-50 text-center">
           <div class="text-xs text-gray-600 mb-2">월말 미수금</div>
-          <div class="text-3xl font-black text-orange-600">${(report.summary.monthEndReceivable || 0).toLocaleString()}<span class="text-lg">원</span></div>
+          <div class="text-2xl font-black text-orange-600">${(report.summary.monthEndReceivable || 0).toLocaleString()}<span class="text-base">원</span></div>
         </div>
       </div>
 
-      <div class="grid md:grid-cols-2 gap-4 mb-6">
+      <div class="grid md:grid-cols-3 gap-4 mb-6">
         <div class="card bg-yellow-50">
           <div class="text-xs text-gray-600 mb-1">자재비 총액</div>
-          <div class="text-2xl font-bold text-yellow-700">${(report.summary.materialCostTotal || 0).toLocaleString()}원</div>
+          <div class="text-xl font-bold text-yellow-700">${(report.summary.materialCostTotal || 0).toLocaleString()}원</div>
         </div>
         <div class="card bg-indigo-50">
           <div class="text-xs text-gray-600 mb-1">세금 총액</div>
-          <div class="text-2xl font-bold text-indigo-700">${(report.summary.taxTotal || 0).toLocaleString()}원</div>
+          <div class="text-xl font-bold text-indigo-700">${(report.summary.taxTotal || 0).toLocaleString()}원</div>
+        </div>
+        <div class="card bg-teal-50">
+          <div class="text-xs text-gray-600 mb-1">이번달 입금액</div>
+          <div class="text-xl font-bold text-teal-700">${(report.summary.collectionInMonth || 0).toLocaleString()}원</div>
         </div>
       </div>
 
-      <!-- 기사별 실적 -->
       <div class="card">
         <h3 class="font-black text-xl mb-4 text-gray-800">👷 기사별 실적</h3>
         <div class="overflow-x-auto">
@@ -830,7 +1114,6 @@ async function loadMonthlyReport() {
         </div>
       </div>
 
-      <!-- 기구별 실적 -->
       <div class="card mt-4">
         <h3 class="font-black text-xl mb-4 text-gray-800">🔧 기구별 실적</h3>
         <div class="overflow-x-auto">
@@ -855,17 +1138,16 @@ async function loadMonthlyReport() {
         </div>
       </div>
 
-      <!-- 상태별 요약 -->
       <div class="card mt-4">
         <h3 class="font-black text-xl mb-4 text-gray-800">📋 상태별 요약</h3>
         <div class="grid md:grid-cols-4 gap-3">
           ${report.statusSummary?.map(s => `
-            <div class="bg-gray-50 p-3 rounded-lg text-center">
-              <div class="text-xs text-gray-600 mb-1">${s.status}</div>
-              <div class="text-2xl font-bold text-blue-600">${s.count}</div>
-              <div class="text-xs text-gray-500 mt-1">${(s.sales || 0).toLocaleString()}원</div>
+            <div class="bg-gray-50 p-4 rounded-lg text-center">
+              <div class="text-sm text-gray-600 mb-1">${s.status}</div>
+              <div class="text-2xl font-bold text-blue-600">${s.count}건</div>
+              <div class="text-xs text-gray-500">${(s.sales || 0).toLocaleString()}원</div>
             </div>
-          `).join('') || '<p class="text-gray-500">데이터 없음</p>'}
+          `).join('') || '<p class="text-gray-500 col-span-4 text-center">데이터 없음</p>'}
         </div>
       </div>
     `;
@@ -882,30 +1164,11 @@ function showLoading(show) {
   document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
 }
 
-function closeModal(event) {
-  if (event) {
-    const overlay = event.target.closest('.modal-overlay');
-    if (overlay) overlay.remove();
-  } else {
-    document.querySelector('.modal-overlay')?.remove();
-  }
-}
-
-// 탭 전환
+// 탭 전환 이벤트
 document.addEventListener('click', (e) => {
   if (e.target.classList.contains('tab-btn')) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-active'));
-    e.target.classList.add('tab-active');
-    
-    document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
-    const targetTab = document.getElementById('tab-' + e.target.dataset.tab);
-    if (targetTab) targetTab.style.display = 'block';
-    
-    // 탭별 렌더링
-    if (e.target.dataset.tab === 'reception') renderReceptionTab();
-    if (e.target.dataset.tab === 'list') renderListTab();
-    if (e.target.dataset.tab === 'receivable') renderReceivableTab();
-    if (e.target.dataset.tab === 'monthly') renderMonthlyTab();
+    const tabName = e.target.dataset.tab;
+    switchTab(tabName);
   }
 });
 
