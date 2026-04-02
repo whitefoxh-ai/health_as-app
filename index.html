@@ -676,7 +676,7 @@ async function loadASList() {
         <div class="flex justify-between items-start mb-2">
           <div>
             <span class="font-black text-blue-600 text-lg">${item.asNo}</span>
-            ${item.groupNo ? `<span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded ml-2 font-bold">📦 ${item.groupSeq}/${item.groupCount}</span>` : ''}
+          ${item.groupCount > 1 ? `<span class="ml-2 text-xs bg-purple-100 px-2 py-1 rounded">📦 ${item.groupSeq}/${item.groupCount}</span>` : ''}
           </div>
           <span class="text-sm font-bold px-3 py-1 rounded ${getStatusColor(item.status)}">${item.status}</span>
         </div>
@@ -710,14 +710,29 @@ function getStatusColor(status) {
 // =====================================================
 // AS 상세 (수정 + 삭제 + 보고서 + 입금 기능 포함)
 // =====================================================
+// =====================================================
+// AS 상세 (세금계산서 + 세액 + 사진 + 단건 묶음 구분)
+// =====================================================
 async function viewASDetail(asNo) {
   try {
     const detail = await callGAS('getASDetail', { asNo });
     
+    // 사진 목록 조회
+    let photos = [];
+    try {
+      photos = await callGAS('getASPhotos', { asNo });
+    } catch(e) {}
+    
+    // 묶음 정보 (다건일 때만)
     let groupInfo = null;
     if (detail.groupNo && detail.groupCount > 1) {
       try { groupInfo = await callGAS('getPaymentTarget', { targetNo: detail.groupNo }); } catch(e) {}
     }
+    
+    // 세액 계산
+    const subTotal = (detail.asFee || 0) + (detail.travelCost || 0) + (detail.otherCost || 0);
+    const taxAmount = detail.taxInvoice === '발행' ? Math.round(subTotal * 0.1) : 0;
+    const totalWithTax = subTotal + taxAmount;
     
     document.querySelectorAll('.modal-overlay').forEach(el => el.remove());
     
@@ -728,12 +743,12 @@ async function viewASDetail(asNo) {
           <div class="flex justify-between items-start mb-4">
             <div>
               <h3 class="text-3xl font-black text-blue-600">${detail.asNo}</h3>
-              ${detail.groupNo ? `<span class="inline-block mt-2 bg-purple-100 text-purple-700 px-3 py-1 rounded-full font-bold text-sm">📦 ${detail.groupNo} (${detail.groupSeq}/${detail.groupCount})</span>` : ''}
+              ${detail.groupCount > 1 ? `<span class="inline-block mt-2 bg-purple-100 text-purple-700 px-3 py-1 rounded-full font-bold text-sm">📦 ${detail.groupNo} (${detail.groupSeq}/${detail.groupCount})</span>` : ''}
             </div>
             <button onclick="closeModal()" class="text-gray-400 hover:text-gray-700 text-4xl">&times;</button>
           </div>
 
-          <!-- 묶음 정보 -->
+          <!-- 묶음 정보 (다건일 때만) -->
           ${groupInfo && groupInfo.items?.length > 1 ? `
             <div class="bg-purple-50 p-4 rounded-lg mb-4 border-2 border-purple-300">
               <h4 class="font-bold text-purple-700 mb-2">📦 묶음 접수 (${groupInfo.count}건)</h4>
@@ -756,7 +771,7 @@ async function viewASDetail(asNo) {
           ` : ''}
 
           <!-- 상태 수정 -->
-          <div class="grid md:grid-cols-3 gap-4 mb-4 bg-gray-50 p-4 rounded-lg">
+          <div class="grid md:grid-cols-4 gap-4 mb-4 bg-gray-50 p-4 rounded-lg">
             <div>
               <label class="label">상태</label>
               <select id="editStatus" class="input">
@@ -776,6 +791,10 @@ async function viewASDetail(asNo) {
                 ${(MASTER_DATA?.priorities || ['일반']).map(p => `<option ${p === detail.priority ? 'selected' : ''}>${p}</option>`).join('')}
               </select>
             </div>
+            <div>
+              <label class="label">방문예정일</label>
+              <input type="date" id="editVisitDate" class="input" value="${detail.visitDate || ''}">
+            </div>
           </div>
 
           <!-- 고객/기구 정보 -->
@@ -783,8 +802,8 @@ async function viewASDetail(asNo) {
             <div class="bg-blue-50 p-3 rounded-lg">
               <div class="font-bold mb-2">👤 고객정보</div>
               <div class="text-sm">
-                <div>${detail.centerName || '-'} | ${detail.customerName || '-'}</div>
-                <div>${detail.phone || '-'}</div>
+                <div><strong>${detail.centerName || '-'}</strong> | ${detail.customerName || '-'}</div>
+                <div>📞 ${detail.phone || '-'}</div>
                 <div class="text-xs text-gray-500">${detail.address || '-'}</div>
               </div>
             </div>
@@ -802,12 +821,48 @@ async function viewASDetail(asNo) {
           <div class="bg-red-50 p-4 rounded-lg mb-4">
             <label class="label">⚠️ 고장증상</label>
             <div class="text-sm">${detail.symptom || '-'}</div>
+            ${detail.detailContent ? `<div class="text-xs text-gray-500 mt-2">${detail.detailContent}</div>` : ''}
           </div>
 
-          <!-- 수리내역 (수정 가능) -->
+          <!-- 수리내역 -->
           <div class="bg-green-50 p-4 rounded-lg mb-4">
             <label class="label">🔧 수리내역</label>
-            <textarea id="editRepairDetail" class="input" rows="3">${detail.repairDetail || ''}</textarea>
+            <textarea id="editRepairDetail" class="input" rows="3" placeholder="수리 완료 후 내용 입력">${detail.repairDetail || ''}</textarea>
+          </div>
+
+          <!-- ★★★ 수리사진 ★★★ -->
+          <div class="bg-indigo-50 p-4 rounded-lg mb-4">
+            <div class="flex justify-between items-center mb-3">
+              <label class="label">📷 수리사진</label>
+            </div>
+            
+            <!-- 사진 업로드 -->
+            <div class="grid md:grid-cols-3 gap-3 mb-4">
+              <div>
+                <label class="text-xs text-gray-600">고장사진</label>
+                <input type="file" accept="image/*" class="input text-sm" onchange="uploadPhoto('${detail.asNo}', '고장사진', this)">
+              </div>
+              <div>
+                <label class="text-xs text-gray-600">부품교체사진</label>
+                <input type="file" accept="image/*" class="input text-sm" onchange="uploadPhoto('${detail.asNo}', '부품교체사진', this)">
+              </div>
+              <div>
+                <label class="text-xs text-gray-600">수리완료사진</label>
+                <input type="file" accept="image/*" class="input text-sm" onchange="uploadPhoto('${detail.asNo}', '수리완료사진', this)">
+              </div>
+            </div>
+            
+            <!-- 사진 목록 -->
+            <div id="photoList" class="grid grid-cols-2 md:grid-cols-4 gap-3">
+              ${photos.length === 0 ? '<p class="text-gray-500 text-sm col-span-4">등록된 사진이 없습니다.</p>' : ''}
+              ${photos.map(p => `
+                <div class="relative group">
+                  <img src="${p.thumbUrl || p.viewUrl}" alt="${p.photoType}" class="w-full h-24 object-cover rounded-lg border cursor-pointer" onclick="window.open('${p.viewUrl}', '_blank')">
+                  <div class="absolute top-1 left-1 bg-black bg-opacity-60 text-white text-xs px-2 py-0.5 rounded">${p.photoType}</div>
+                  <button onclick="deletePhoto('${p.photoId}', '${detail.asNo}')" class="absolute top-1 right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full opacity-0 group-hover:opacity-100 transition">✕</button>
+                </div>
+              `).join('')}
+            </div>
           </div>
 
           <!-- 금액 정보 -->
@@ -830,14 +885,37 @@ async function viewASDetail(asNo) {
             </div>
           </div>
 
-          <div class="grid md:grid-cols-3 gap-4 mb-4">
+          <!-- ★★★ 세금계산서 + 세액 ★★★ -->
+          <div class="grid md:grid-cols-3 gap-4 mb-4 bg-orange-50 p-4 rounded-lg">
+            <div>
+              <label class="label">세금계산서</label>
+              <select id="editTaxInvoice" class="input">
+                ${(MASTER_DATA?.taxInvoices || ['해당없음','발행','미발행']).map(t => `<option ${t === detail.taxInvoice ? 'selected' : ''}>${t}</option>`).join('')}
+              </select>
+            </div>
+            <div class="text-center">
+              <div class="text-xs text-gray-500 mb-1">공급가액</div>
+              <div class="font-bold text-lg">${subTotal.toLocaleString()}원</div>
+            </div>
+            <div class="text-center">
+              <div class="text-xs text-gray-500 mb-1">세액 (10%)</div>
+              <div class="font-bold text-lg ${taxAmount > 0 ? 'text-orange-600' : 'text-gray-400'}">${taxAmount > 0 ? taxAmount.toLocaleString() + '원' : '-'}</div>
+            </div>
+          </div>
+
+          <!-- 입금 현황 -->
+          <div class="grid md:grid-cols-4 gap-4 mb-4">
+            <div class="bg-blue-100 p-4 rounded text-center">
+              <div class="text-xs">총액 (세금포함)</div>
+              <div class="font-black text-xl text-blue-600">${totalWithTax.toLocaleString()}원</div>
+            </div>
             <div class="bg-green-100 p-4 rounded text-center">
               <div class="text-xs">입금액</div>
-              <div class="font-black text-2xl text-green-600">${(detail.paidAmount || 0).toLocaleString()}원</div>
+              <div class="font-black text-xl text-green-600">${(detail.paidAmount || 0).toLocaleString()}원</div>
             </div>
             <div class="bg-${detail.receivable > 0 ? 'red' : 'blue'}-100 p-4 rounded text-center">
               <div class="text-xs">미수금</div>
-              <div class="font-black text-2xl text-${detail.receivable > 0 ? 'red' : 'blue'}-600">${(detail.receivable || 0).toLocaleString()}원</div>
+              <div class="font-black text-xl text-${detail.receivable > 0 ? 'red' : 'blue'}-600">${(detail.receivable || 0).toLocaleString()}원</div>
             </div>
             <div class="bg-purple-100 p-4 rounded text-center">
               <div class="text-xs">입금상태</div>
@@ -851,7 +929,7 @@ async function viewASDetail(asNo) {
               <div class="font-bold mb-2">💰 입금 내역</div>
               ${detail.payments.map(p => `
                 <div class="text-sm flex justify-between border-b py-1">
-                  <span>${p.payDate} | ${p.payMethod}</span>
+                  <span>${p.payDate} | ${p.payMethod} ${p.note ? '| ' + p.note : ''}</span>
                   <strong class="text-green-600">${(p.amount || 0).toLocaleString()}원</strong>
                 </div>
               `).join('')}
@@ -882,7 +960,7 @@ async function viewASDetail(asNo) {
           </div>
 
           <div class="text-xs text-gray-400 mt-4 text-center">
-            접수: ${detail.receivedAt} | 수정: ${detail.updatedAt || '-'} | 완료: ${detail.completeDate || '-'}
+            접수: ${detail.receivedAt} | 채널: ${detail.channel || '-'} | 수정: ${detail.updatedAt || '-'} | 완료: ${detail.completeDate || '-'}
           </div>
         </div>
       </div>
@@ -894,6 +972,140 @@ async function viewASDetail(asNo) {
     });
     
   } catch (err) {}
+}
+
+// AS 수정 저장 (세금계산서 포함)
+async function saveASChanges(asNo) {
+  const data = {
+    asNo,
+    status: document.getElementById('editStatus')?.value,
+    technician: document.getElementById('editTechnician')?.value,
+    priority: document.getElementById('editPriority')?.value,
+    visitDate: document.getElementById('editVisitDate')?.value,
+    taxInvoice: document.getElementById('editTaxInvoice')?.value,
+    repairDetail: document.getElementById('editRepairDetail')?.value
+  };
+
+  try {
+    await callGAS('saveASUpdate', { data: encodeURIComponent(JSON.stringify(data)) });
+    alert('✅ 저장 완료');
+    closeModal();
+    viewASDetail(asNo);
+  } catch (err) {}
+}
+
+// ★★★ 사진 업로드 ★★★
+async function uploadPhoto(asNo, photoType, inputEl) {
+  const file = inputEl.files[0];
+  if (!file) return;
+  
+  if (!file.type.startsWith('image/')) {
+    alert('이미지 파일만 업로드 가능합니다.');
+    inputEl.value = '';
+    return;
+  }
+  
+  if (file.size > 10 * 1024 * 1024) {
+    alert('파일 크기는 10MB 이하만 가능합니다.');
+    inputEl.value = '';
+    return;
+  }
+  
+  try {
+    showLoading(true);
+    
+    // 파일을 base64로 변환
+    const dataUrl = await fileToDataUrl(file);
+    
+    const payload = {
+      asNo,
+      photoType,
+      dataUrl
+    };
+    
+    await callGAS('uploadASPhoto', { payload: encodeURIComponent(JSON.stringify(payload)) });
+    
+    alert('✅ 사진 업로드 완료');
+    inputEl.value = '';
+    
+    // 상세보기 새로고침
+    closeModal();
+    viewASDetail(asNo);
+    
+  } catch (err) {
+    inputEl.value = '';
+  }
+}
+
+// 파일을 DataURL로 변환
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ★★★ 사진 삭제 ★★★
+async function deletePhoto(photoId, asNo) {
+  if (!confirm('이 사진을 삭제하시겠습니까?')) return;
+  
+  try {
+    await callGAS('deleteASPhoto', { photoId });
+    alert('✅ 사진 삭제 완료');
+    closeModal();
+    viewASDetail(asNo);
+  } catch (err) {}
+}
+
+// 입금 추가
+async function addNewPayment(asNo) {
+  const amount = Number(document.getElementById('newPayAmount')?.value || 0);
+  if (amount <= 0) return alert('입금액을 입력하세요.');
+
+  const data = {
+    asNo,
+    amount,
+    payDate: document.getElementById('newPayDate')?.value,
+    payMethod: document.getElementById('newPayMethod')?.value
+  };
+
+  try {
+    await callGAS('addPayment', { data: encodeURIComponent(JSON.stringify(data)) });
+    alert('✅ 입금 등록 완료');
+    closeModal();
+    viewASDetail(asNo);
+  } catch (err) {}
+}
+
+// 보고서 생성
+async function generateReport(asNo) {
+  if (!confirm('작업완료 보고서(PDF)를 생성하시겠습니까?')) return;
+
+  try {
+    const result = await callGAS('generateCompletionReportPdf', { asNo });
+    if (result.pdfUrl) {
+      alert('✅ 보고서 생성 완료');
+      window.open(result.pdfUrl, '_blank');
+    }
+  } catch (err) {}
+}
+
+// AS 삭제
+async function deleteASConfirm(asNo) {
+  if (!confirm(`정말 삭제하시겠습니까?\n\n접수번호: ${asNo}\n\n⚠️ 관련 입금내역, 사진도 함께 삭제됩니다.`)) return;
+
+  try {
+    await callGAS('deleteAS', { asNo });
+    alert('✅ 삭제 완료');
+    closeModal();
+    loadASList();
+  } catch (err) {}
+}
+
+function closeModal() {
+  document.getElementById('detailModal')?.remove();
 }
 
 // AS 수정 저장
