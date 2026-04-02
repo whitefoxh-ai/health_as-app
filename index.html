@@ -1,232 +1,586 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>헬스AS 관리시스템</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>헬스기구 AS 관리시스템</title>
   
-  <!-- 모바일에서 깔끔하게 보이게 -->
-  <meta name="theme-color" content="#1e40af" />
-  <link rel="manifest" href="data:application/manifest+json,{
-    \"name\":\"헬스AS 관리\",
-    \"short_name\":\"헬스AS\",
-    \"start_url\":\".\",
-    \"display\":\"standalone\",
-    \"background_color\":\"#ffffff\",
-    \"theme_color\":\"#1e40af\",
-    \"icons\":[{\"src\":\"https://raw.githubusercontent.com/kyuzman/healthas/main/icon-192.png\",\"sizes\":\"192x192\",\"type\":\"image/png\"},{\"src\":\"https://raw.githubusercontent.com/kyuzman/healthas/main/icon-512.png\",\"sizes\":\"512x512\",\"type\":\"image/png\"}]
-  }" />
-
-  <!-- Tailwind CSS CDN (가장 빠름) -->
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: { extend: { fontFamily: { sans: ['"Noto Sans KR"', 'sans-serif'] } } }
-    }
-  </script>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+  
+  <!-- 한글 폰트 -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
   
   <style>
-    body { -webkit-tap-highlight-color: transparent; }
-    .loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
-    .spinner { width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 20px; }
+    body { font-family: 'Noto+Sans KR', sans-serif; }
+    .loading-spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .tab-active { border-bottom: 3px solid #3b82f6; color: #3b82f6; font-weight: 700; }
+    .btn-primary { @apply bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition; }
+    .btn-secondary { @apply bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition; }
+    .card { @apply bg-white rounded-lg shadow-md p-5 mb-4; }
   </style>
 </head>
 
-<body class="bg-gray-50 text-gray-800 min-h-screen">
-  <!-- 로딩 화면 -->
-  <div id="loading" class="loading">
-    <div class="spinner"></div>
-    <div class="text-xl font-bold text-blue-600">헬스AS 로딩 중...</div>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- 로딩 오버레이 -->
+<div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center" style="display:none;">
+  <div class="bg-white p-8 rounded-lg shadow-xl text-center">
+    <div class="loading-spinner mx-auto mb-4"></div>
+    <p class="text-gray-700 font-medium">처리 중...</p>
   </div>
+</div>
 
-  <div id="app" class="hidden max-w-5xl mx-auto p-4">
-    <header class="bg-blue-600 text-white p-4 rounded-lg shadow-lg mb-6 text-center">
-      <h1 class="text-2xl md:text-3xl font-bold">헬스AS 관리시스템</h1>
-      <p class="text-sm mt-1" id="today"></p>
-    </header>
+<!-- 메인 컨테이너 -->
+<div class="max-w-7xl mx-auto p-4">
+  
+  <!-- 헤더 -->
+  <header class="card bg-gradient-to-r from-blue-600 to-blue-800 text-white mb-6">
+    <h1 class="text-3xl font-black mb-2">⚙️ 헬스기구 AS 관리</h1>
+    <p id="todayDate" class="text-sm opacity-90"></p>
+  </header>
 
-    <!-- 대시보드 요약 -->
-    <div id="dashboard" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"></div>
+  <!-- 대시보드 요약 -->
+  <div id="dashboardSummary" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"></div>
 
-    <!-- 탭 메뉴 -->
-    <div class="flex border-b mb-6 overflow-x-auto">
-      <button class="tab-btn active px-6 py-3 font-medium" data-tab="reception">신규 접수</button>
-      <button class="tab-btn px-6 py-3 font-medium" data-tab="list">AS 목록</button>
-      <button class="tab-btn px-6 py-3 font-medium" data-tab="receivable">미수금 관리</button>
-      <button class="tab-btn px-6 py-3 font-medium" data-tab="monthly">월마감</button>
+  <!-- 탭 메뉴 -->
+  <div class="bg-white rounded-lg shadow-md mb-6 overflow-x-auto">
+    <div class="flex border-b">
+      <button class="tab-btn tab-active px-6 py-3 font-medium" data-tab="reception">📝 신규접수</button>
+      <button class="tab-btn px-6 py-3 font-medium" data-tab="list">📋 AS목록</button>
+      <button class="tab-btn px-6 py-3 font-medium" data-tab="receivable">💰 미수금</button>
+      <button class="tab-btn px-6 py-3 font-medium" data-tab="monthly">📊 월마감</button>
     </div>
-
-    <!-- 각 탭 컨텐츠 -->
-    <div id="tab-reception" class="tab-content"></div>
-    <div id="tab-list" class="tab-content hidden"></div>
-    <div id="tab-receivable" class="tab-content hidden"></div>
-    <div id="tab-monthly" class="tab-content hidden"></div>
   </div>
 
-  <!-- ★★★★★ 핵심: 초고속 GET 전용 API 함수 (이게 진짜 핵심입니다) ★★★★★ -->
-  <script>
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbxr23iDveGENmEkYfuk5Lsy-CnHuN2a4c7KyBELoi_wh0LfVk4BBO3hUfbD-2f3HFfB/exec'; // ← 여기만 본인 웹앱 URL로 바꾸세요!!
+  <!-- 탭 컨텐츠 -->
+  <div id="tab-reception" class="tab-content"></div>
+  <div id="tab-list" class="tab-content" style="display:none;"></div>
+  <div id="tab-receivable" class="tab-content" style="display:none;"></div>
+  <div id="tab-monthly" class="tab-content" style="display:none;"></div>
 
-    // 모든 API 호출은 이 함수만 사용 (POST 완전 제거 + 캐시 + 에러처리 완벽)
-    async function callGAS(action, params = {}) {
-      // getInitData 캐시 최적화
-      if (action === 'getInitData') {
-        const cached = localStorage.getItem('cachedInitData');
-        const etag = localStorage.getItem('cachedEtag') || '';
-        if (cached && etag) {
-          try {
-            const res = await fetch(`${GAS_URL}?action=getInitData&_etag=${etag}`);
-            if (res.status === 304) {
-              return JSON.parse(cached);
-            }
-          } catch(e) {}
-        }
-      }
+</div>
 
-      const urlParams = new URLSearchParams({ action, ...params }).toString();
-      
-      const res = await fetch(`${GAS_URL}?${urlParams}`, {
-        method: 'GET',
-        cache: 'no-store',
-        headers: { 'Accept': 'application/json' }
-      });
+<!-- =====================================================
+     ★★★ JavaScript 핵심 ★★★
+     Google Apps Script 웹앱 URL을 아래에 입력하세요
+     ===================================================== -->
+<script>
 
-      // ETag 저장
-      const newEtag = res.headers.get('ETag');
-      if (newEtag && (action === 'getInitData' || action === 'refreshDashboard')) {
-        localStorage.setItem('cachedEtag', newEtag);
-      }
+// ========== 설정 (여기만 수정) ==========
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbx여기에본인웹앱URL넣기/exec';
+// ========================================
 
-      if (!res.ok) throw new Error(`서버 오류: ${res.status}`);
+// 전역 변수
+let MASTER_DATA = null;
+let CACHE_TIMESTAMP = 0;
 
-      const data = await res.json();
-      if (data.error) throw new Error(data.message || '알 수 없는 오류');
+// =====================================================
+// 1) 초고속 GET 전용 API 호출 함수 (캐시 + 에러처리 완벽)
+// =====================================================
+async function callGAS(action, params = {}) {
+  try {
+    showLoading(true);
 
-      // initData 캐시 저장
-      if (action === 'getInitData') {
-        localStorage.setItem('cachedInitData', JSON.stringify(data));
-      }
-
-      return data;
-    }
-
-    // 앱 초기화
-    async function initApp() {
-      try {
-        document.getElementById('today').textContent = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
-        
-        const initData = await callGAS('getInitData');
-        window.MASTER = initData.master;
-        renderDashboard(initData.dashboard);
-        
-        renderReceptionForm();
-        renderASList();
-        
-        document.getElementById('loading').classList.add('hidden');
-        document.getElementById('app').classList.remove('hidden');
-      } catch (err) {
-        alert('시스템 로드 실패\n\n' + err.message + '\n\n새로고침(F5) 해주세요.');
+    // getInitData는 5분 캐시
+    if (action === 'getInitData') {
+      const now = Date.now();
+      const cached = localStorage.getItem('cachedInitData');
+      if (cached && CACHE_TIMESTAMP && (now - CACHE_TIMESTAMP < 300000)) {
+        const data = JSON.parse(cached);
+        MASTER_DATA = data.master;
+        showLoading(false);
+        return data;
       }
     }
 
-    function renderDashboard(d) {
-      const container = document.getElementById('dashboard');
-      container.innerHTML = `
-        <div class="bg-white rounded-lg shadow p-5 text-center">
-          <div class="text-3xl font-bold text-blue-600">${d.todayCount || 0}</div>
-          <div class="text-sm text-gray-600">오늘 접수</div>
-        </div>
-        <div class="bg-white rounded-lg shadow p-5 text-center">
-          <div class="text-3xl font-bold text-green-600">${d.monthSales?.toLocaleString() || 0}원</div>
-          <div class="text-sm text-gray-600">이번달 매출</div>
-        </div>
-        <div class="bg-white rounded-lg shadow p-5 text-center">
-          <div class="text-3xl font-bold text-orange-600">${d.totalReceivable?.toLocaleString() || 0}원</div>
-          <div class="text-sm text-gray-600">총 미수금</div>
-        </div>
-        <div class="bg-white rounded-lg shadow p-5 text-center">
-          <div class="text-3xl font-bold text-purple-600">${d.openCount || 0}</div>
-          <div class="text-sm text-gray-600">진행중</div>
-        </div>
-      `;
-    }
+    // GET 파라미터 생성
+    const urlParams = new URLSearchParams({ action, ...params });
+    const url = `${GAS_URL}?${urlParams.toString()}`;
 
-    // 탭 전환
-    document.addEventListener('click', e => {
-      if (e.target.classList.contains('tab-btn')) {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        e.target.classList.add('active');
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-        document.getElementById('tab-' + e.target.dataset.tab).classList.remove('hidden');
-        
-        if (e.target.dataset.tab === 'list') renderASList();
-        if (e.target.dataset.tab === 'receivable') renderReceivable();
-        if (e.target.dataset.tab === 'monthly') renderMonthlyReport();
-      }
+    const response = await fetch(url, {
+      method: 'GET',
+      cache: 'no-store',
+      headers: { 'Accept': 'application/json' }
     });
 
-    // 신규 접수 폼 (간단 버전)
-    function renderReceptionForm() {
-      document.getElementById('tab-reception').innerHTML = `
-        <div class="bg-white rounded-lg shadow-lg p-6">
-          <h2 class="text-xl font-bold mb-4">신규 AS 접수</h2>
-          <div class="grid md:grid-cols-2 gap-4">
-            <input type="text" id="phone" placeholder="연락처 (필수)" class="p-3 border rounded-lg">
-            <input type="text" id="centerName" placeholder="센터명 또는 고객명" class="p-3 border rounded-lg">
-            <select id="equipmentType" class="p-3 border rounded-lg">${window.MASTER?.equipmentTypes?.map(v=>`<option>${v}</option>`).join('')||''}</select>
-            <input type="text" id="symptom" placeholder="고장증상 (필수)" class="p-3 border rounded-lg">
-            <button onclick="saveNewAS()" class="bg-blue-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-blue-700">접수하기</button>
+    if (!response.ok) {
+      throw new Error(`서버 오류 (HTTP ${response.status})`);
+    }
+
+    const data = await response.json();
+
+    if (data.error) {
+      throw new Error(data.message || '알 수 없는 오류');
+    }
+
+    // getInitData 캐시 저장
+    if (action === 'getInitData') {
+      localStorage.setItem('cachedInitData', JSON.stringify(data));
+      CACHE_TIMESTAMP = Date.now();
+      MASTER_DATA = data.master;
+    }
+
+    // 저장/수정/삭제 후 캐시 무효화
+    if (['saveAS', 'saveASUpdate', 'deleteAS', 'addPayment', 'addGroupPayment'].includes(action)) {
+      localStorage.removeItem('cachedInitData');
+      CACHE_TIMESTAMP = 0;
+    }
+
+    showLoading(false);
+    return data;
+
+  } catch (err) {
+    showLoading(false);
+    console.error('API 오류:', err);
+    alert('⚠️ 네트워크 오류\n\n' + err.message + '\n\n잠시 후 다시 시도해주세요.');
+    throw err;
+  }
+}
+
+// =====================================================
+// 2) 초기화
+// =====================================================
+async function initApp() {
+  try {
+    // 오늘 날짜 표시
+    const today = new Date();
+    document.getElementById('todayDate').textContent = 
+      today.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+
+    // 초기 데이터 로드
+    const initData = await callGAS('getInitData');
+    MASTER_DATA = initData.master;
+    
+    renderDashboard(initData.dashboard);
+    renderReceptionTab();
+    renderListTab();
+    renderReceivableTab();
+    renderMonthlyTab();
+
+  } catch (err) {
+    alert('시스템 초기화 실패\n새로고침(F5) 해주세요.');
+  }
+}
+
+// =====================================================
+// 3) 대시보드 렌더링
+// =====================================================
+function renderDashboard(dash) {
+  const container = document.getElementById('dashboardSummary');
+  container.innerHTML = `
+    <div class="card text-center bg-blue-50">
+      <div class="text-3xl font-black text-blue-600">${dash.todayCount || 0}</div>
+      <div class="text-sm text-gray-600 mt-1">오늘 접수</div>
+    </div>
+    <div class="card text-center bg-green-50">
+      <div class="text-3xl font-black text-green-600">${(dash.monthSales || 0).toLocaleString()}원</div>
+      <div class="text-sm text-gray-600 mt-1">이번달 매출</div>
+    </div>
+    <div class="card text-center bg-orange-50">
+      <div class="text-3xl font-black text-orange-600">${(dash.totalReceivable || 0).toLocaleString()}원</div>
+      <div class="text-sm text-gray-600 mt-1">총 미수금</div>
+    </div>
+    <div class="card text-center bg-purple-50">
+      <div class="text-3xl font-black text-purple-600">${dash.openCount || 0}</div>
+      <div class="text-sm text-gray-600 mt-1">진행중</div>
+    </div>
+  `;
+}
+
+// =====================================================
+// 4) 신규접수 탭
+// =====================================================
+function renderReceptionTab() {
+  const container = document.getElementById('tab-reception');
+  container.innerHTML = `
+    <div class="card">
+      <h2 class="text-2xl font-bold mb-4 text-gray-800">📝 신규 AS 접수</h2>
+      
+      <div class="grid md:grid-cols-2 gap-4 mb-4">
+        <input type="text" id="phoneInput" placeholder="연락처 (필수)" class="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
+        <input type="text" id="centerNameInput" placeholder="센터명" class="p-3 border rounded-lg">
+        <input type="text" id="customerNameInput" placeholder="고객명" class="p-3 border rounded-lg">
+        <select id="customerTypeSelect" class="p-3 border rounded-lg">
+          ${(MASTER_DATA?.customerTypes || ['헬스장']).map(t => `<option>${t}</option>`).join('')}
+        </select>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-4 mb-4">
+        <select id="equipmentTypeSelect" class="p-3 border rounded-lg">
+          ${(MASTER_DATA?.equipmentTypes || ['런닝머신']).map(t => `<option>${t}</option>`).join('')}
+        </select>
+        <input type="text" id="symptomInput" placeholder="고장증상 (필수)" class="p-3 border rounded-lg">
+        <input type="number" id="asFeeInput" placeholder="AS비용 (원)" class="p-3 border rounded-lg">
+        <select id="technicianSelect" class="p-3 border rounded-lg">
+          <option value="">담당기사 선택</option>
+          ${(MASTER_DATA?.technicians || []).map(t => `<option>${t}</option>`).join('')}
+        </select>
+      </div>
+
+      <div class="flex gap-3">
+        <button onclick="submitNewAS()" class="btn-primary flex-1">접수 완료</button>
+        <button onclick="resetReceptionForm()" class="btn-secondary">초기화</button>
+      </div>
+    </div>
+  `;
+}
+
+async function submitNewAS() {
+  const phone = document.getElementById('phoneInput').value.trim();
+  const symptom = document.getElementById('symptomInput').value.trim();
+
+  if (!phone) return alert('연락처를 입력하세요.');
+  if (!symptom) return alert('고장증상을 입력하세요.');
+
+  const data = {
+    phone,
+    centerName: document.getElementById('centerNameInput').value.trim(),
+    customerName: document.getElementById('customerNameInput').value.trim(),
+    customerType: document.getElementById('customerTypeSelect').value,
+    equipmentType: document.getElementById('equipmentTypeSelect').value,
+    symptom,
+    asFee: document.getElementById('asFeeInput').value,
+    technician: document.getElementById('technicianSelect').value,
+    items: [{
+      equipmentType: document.getElementById('equipmentTypeSelect').value,
+      symptom,
+      asFee: document.getElementById('asFeeInput').value || 0
+    }]
+  };
+
+  try {
+    const result = await callGAS('saveAS', {
+      data: encodeURIComponent(JSON.stringify(data))
+    });
+
+    if (result.asNos) {
+      alert(`✅ 접수 완료!\n\n접수번호: ${result.asNos[0]}\n묶음번호: ${result.groupNo}`);
+      resetReceptionForm();
+      
+      // 대시보드 새로고침
+      const dash = await callGAS('refreshDashboard');
+      renderDashboard(dash);
+    }
+  } catch (err) {
+    // 에러는 callGAS에서 이미 처리됨
+  }
+}
+
+function resetReceptionForm() {
+  document.getElementById('phoneInput').value = '';
+  document.getElementById('centerNameInput').value = '';
+  document.getElementById('customerNameInput').value = '';
+  document.getElementById('symptomInput').value = '';
+  document.getElementById('asFeeInput').value = '';
+  document.getElementById('technicianSelect').value = '';
+}
+
+// =====================================================
+// 5) AS 목록 탭
+// =====================================================
+function renderListTab() {
+  const container = document.getElementById('tab-list');
+  container.innerHTML = `
+    <div class="card">
+      <h2 class="text-2xl font-bold mb-4 text-gray-800">📋 AS 목록</h2>
+      
+      <div class="flex gap-3 mb-4">
+        <input type="text" id="listSearchInput" placeholder="검색 (접수번호, 고객명, 센터명...)" class="flex-1 p-3 border rounded-lg">
+        <button onclick="loadASList()" class="btn-primary">검색</button>
+      </div>
+
+      <div id="asListContainer" class="space-y-3"></div>
+    </div>
+  `;
+  
+  loadASList();
+}
+
+async function loadASList() {
+  const keyword = document.getElementById('listSearchInput')?.value || '';
+  const container = document.getElementById('asListContainer');
+  
+  container.innerHTML = '<div class="text-center py-8 text-gray-500">로딩 중...</div>';
+
+  try {
+    const list = await callGAS('getASList', { keyword, status: '전체' });
+
+    if (!list || list.length === 0) {
+      container.innerHTML = '<div class="text-center py-8 text-gray-500">검색 결과가 없습니다.</div>';
+      return;
+    }
+
+    container.innerHTML = list.slice(0, 50).map(item => `
+      <div class="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer" onclick="viewASDetail('${item.asNo}')">
+        <div class="flex justify-between items-start mb-2">
+          <div>
+            <span class="font-bold text-blue-600">${item.asNo}</span>
+            ${item.groupNo ? `<span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded ml-2">${item.groupSeq}/${item.groupCount}</span>` : ''}
+          </div>
+          <span class="text-xs px-2 py-1 rounded ${getStatusColor(item.status)}">${item.status}</span>
+        </div>
+        <div class="text-sm text-gray-700 mb-1">
+          <strong>${item.centerName || item.customerName}</strong> | ${item.phone}
+        </div>
+        <div class="text-sm text-gray-600">
+          ${item.equipmentType} - ${item.symptom}
+        </div>
+        <div class="text-xs text-gray-500 mt-2 flex justify-between">
+          <span>${item.receivedAt}</span>
+          <span class="font-medium ${item.receivable > 0 ? 'text-red-600' : 'text-green-600'}">
+            미수: ${(item.receivable || 0).toLocaleString()}원
+          </span>
+        </div>
+      </div>
+    `).join('');
+
+  } catch (err) {
+    container.innerHTML = '<div class="text-center py-8 text-red-500">목록 로드 실패</div>';
+  }
+}
+
+function getStatusColor(status) {
+  const colors = {
+    '접수': 'bg-blue-100 text-blue-700',
+    '방문예정': 'bg-yellow-100 text-yellow-700',
+    '처리중': 'bg-orange-100 text-orange-700',
+    '완료': 'bg-green-100 text-green-700',
+    '취소': 'bg-gray-100 text-gray-700'
+  };
+  return colors[status] || 'bg-gray-100 text-gray-700';
+}
+
+async function viewASDetail(asNo) {
+  try {
+    const detail = await callGAS('getASDetail', { asNo });
+    
+    const html = `
+      <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onclick="closeModal(event)">
+        <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6" onclick="event.stopPropagation()">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-2xl font-bold text-gray-800">${detail.asNo}</h3>
+            <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+          </div>
+          
+          <div class="space-y-3 text-sm">
+            <div class="grid grid-cols-2 gap-2">
+              <div><strong>상태:</strong> ${detail.status}</div>
+              <div><strong>접수일:</strong> ${detail.receivedAt}</div>
+              <div><strong>센터명:</strong> ${detail.centerName}</div>
+              <div><strong>고객명:</strong> ${detail.customerName}</div>
+              <div><strong>연락처:</strong> ${detail.phone}</div>
+              <div><strong>담당기사:</strong> ${detail.technician}</div>
+            </div>
+            
+            <div class="pt-3 border-t">
+              <strong>기구정보:</strong> ${detail.equipmentType} / ${detail.brand} / ${detail.modelName}
+            </div>
+            
+            <div class="pt-3 border-t">
+              <strong>고장증상:</strong><br>
+              <div class="bg-gray-50 p-3 rounded mt-1">${detail.symptom}</div>
+            </div>
+            
+            <div class="pt-3 border-t grid grid-cols-2 gap-2">
+              <div><strong>AS비용:</strong> ${(detail.asFee || 0).toLocaleString()}원</div>
+              <div><strong>입금액:</strong> ${(detail.paidAmount || 0).toLocaleString()}원</div>
+              <div class="col-span-2 ${detail.receivable > 0 ? 'text-red-600' : 'text-green-600'} font-bold">
+                <strong>미수금:</strong> ${(detail.receivable || 0).toLocaleString()}원
+              </div>
+            </div>
+          </div>
+          
+          <div class="mt-6 flex gap-3">
+            <button onclick="closeModal()" class="btn-secondary flex-1">닫기</button>
           </div>
         </div>
-      `;
-    }
+      </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', html);
+    
+  } catch (err) {
+    // 에러는 callGAS에서 처리됨
+  }
+}
 
-    window.saveNewAS = async () => {
-      const phone = document.getElementById('phone').value.trim();
-      const symptom = document.getElementById('symptom').value.trim();
-      if (!phone || !symptom) return alert('연락처와 고장증상은 필수입니다.');
+// =====================================================
+// 6) 미수금 탭
+// =====================================================
+function renderReceivableTab() {
+  const container = document.getElementById('tab-receivable');
+  container.innerHTML = `
+    <div class="card">
+      <h2 class="text-2xl font-bold mb-4 text-gray-800">💰 미수금 관리</h2>
+      <div id="receivableContainer">로딩 중...</div>
+    </div>
+  `;
+  
+  loadReceivableData();
+}
 
-      try {
-        await callGAS('saveAS', {
-          data: encodeURIComponent(JSON.stringify({
-            phone,
-            centerName: document.getElementById('centerName').value,
-            equipmentType: document.getElementById('equipmentType').value,
-            symptom,
-            items: [{ equipmentType: document.getElementById('equipmentType').value, symptom }]
-          }))
-        });
-        alert('접수 완료!');
-        initApp();
-      } catch (err) {
-        alert('접수 실패: ' + err.message);
-      }
-    };
-
-    // AS 목록 (간단히)
-    async function renderASList() {
-      const list = await callGAS('getASList', { status: '전체' });
-      document.getElementById('tab-list').innerHTML = `
-        <div class="bg-white rounded-lg shadow-lg p-6">
-          <h2 class="text-xl font-bold mb-4">AS 목록 (${list.length}건)</h2>
-          <div class="space-y-3">${list.slice(0,50).map(item => `
-            <div class="border rounded-lg p-4 hover:bg-gray-50">
-              <div class="font-bold text-blue-600">${item.asNo}</div>
-              <div>${item.centerName} | ${item.customerName} | ${item.phone}</div>
-              <div class="text-sm text-gray-600">${item.equipmentType} - ${item.symptom}</div>
-              <div class="text-right text-sm">${item.status} | ${item.receivable?.toLocaleString()}원 미수</div>
-            </div>
-          `).join('')}</div>
+async function loadReceivableData() {
+  const container = document.getElementById('receivableContainer');
+  
+  try {
+    const data = await callGAS('getReceivableScreenData', {});
+    
+    container.innerHTML = `
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div class="bg-red-50 p-4 rounded-lg text-center">
+          <div class="text-2xl font-bold text-red-600">${(data.summary.totalReceivable || 0).toLocaleString()}원</div>
+          <div class="text-xs text-gray-600">총 미수금</div>
         </div>
-      `;
-    }
+        <div class="bg-orange-50 p-4 rounded-lg text-center">
+          <div class="text-2xl font-bold text-orange-600">${data.summary.overdueCount || 0}</div>
+          <div class="text-xs text-gray-600">연체 건수</div>
+        </div>
+        <div class="bg-blue-50 p-4 rounded-lg text-center">
+          <div class="text-2xl font-bold text-blue-600">${data.summary.unpaidCount || 0}</div>
+          <div class="text-xs text-gray-600">미입금</div>
+        </div>
+        <div class="bg-green-50 p-4 rounded-lg text-center">
+          <div class="text-2xl font-bold text-green-600">${(data.summary.thisMonthCollection || 0).toLocaleString()}원</div>
+          <div class="text-xs text-gray-600">이번달 입금</div>
+        </div>
+      </div>
+      
+      <div class="space-y-2">
+        ${data.list.slice(0, 30).map(item => `
+          <div class="border rounded-lg p-3 ${item.isOverdue ? 'border-red-300 bg-red-50' : ''}">
+            <div class="flex justify-between items-start">
+              <div>
+                <span class="font-bold">${item.asNo}</span>
+                <span class="text-sm text-gray-600 ml-2">${item.centerName} | ${item.customerName}</span>
+              </div>
+              <span class="font-bold text-red-600">${(item.receivable || 0).toLocaleString()}원</span>
+            </div>
+            <div class="text-xs text-gray-500 mt-1">
+              ${item.equipmentType} | ${item.paymentStatus}
+              ${item.isOverdue ? `<span class="text-red-600 font-bold ml-2">⚠️ 연체 ${item.daysOverdue}일</span>` : ''}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    
+  } catch (err) {
+    container.innerHTML = '<div class="text-center py-8 text-red-500">미수금 데이터 로드 실패</div>';
+  }
+}
 
-    // 미수금, 월마감은 추후 추가 예정 (기능 많아지면 계속 붙이면 됨)
+// =====================================================
+// 7) 월마감 탭
+// =====================================================
+function renderMonthlyTab() {
+  const container = document.getElementById('tab-monthly');
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  
+  container.innerHTML = `
+    <div class="card">
+      <h2 class="text-2xl font-bold mb-4 text-gray-800">📊 월마감 리포트</h2>
+      
+      <div class="mb-4">
+        <input type="month" id="monthInput" value="${currentMonth}" class="p-3 border rounded-lg mr-3">
+        <button onclick="loadMonthlyReport()" class="btn-primary">조회</button>
+      </div>
+      
+      <div id="monthlyContainer">로딩 중...</div>
+    </div>
+  `;
+  
+  loadMonthlyReport();
+}
 
-    // 앱 시작
-    initApp();
-  </script>
+async function loadMonthlyReport() {
+  const month = document.getElementById('monthInput')?.value || new Date().toISOString().slice(0, 7);
+  const container = document.getElementById('monthlyContainer');
+  
+  try {
+    const report = await callGAS('getMonthlyClosingReport', { month });
+    
+    container.innerHTML = `
+      <div class="grid md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-blue-50 p-4 rounded-lg">
+          <div class="text-sm text-gray-600">접수 건수</div>
+          <div class="text-3xl font-bold text-blue-600">${report.summary.receivedCount || 0}</div>
+        </div>
+        <div class="bg-green-50 p-4 rounded-lg">
+          <div class="text-sm text-gray-600">매출</div>
+          <div class="text-3xl font-bold text-green-600">${(report.summary.sales || 0).toLocaleString()}원</div>
+        </div>
+        <div class="bg-purple-50 p-4 rounded-lg">
+          <div class="text-sm text-gray-600">순이익</div>
+          <div class="text-3xl font-bold text-purple-600">${(report.summary.margin || 0).toLocaleString()}원</div>
+        </div>
+      </div>
+      
+      <h3 class="font-bold text-lg mb-3">기사별 실적</h3>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm border-collapse border">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="border p-2">기사명</th>
+              <th class="border p-2">건수</th>
+              <th class="border p-2">매출</th>
+              <th class="border p-2">이익</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${report.technicianSummary?.map(t => `
+              <tr>
+                <td class="border p-2">${t.technician}</td>
+                <td class="border p-2 text-center">${t.count}</td>
+                <td class="border p-2 text-right">${(t.sales || 0).toLocaleString()}원</td>
+                <td class="border p-2 text-right font-bold text-green-600">${(t.margin || 0).toLocaleString()}원</td>
+              </tr>
+            `).join('') || '<tr><td colspan="4" class="border p-2 text-center text-gray-500">데이터 없음</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `;
+    
+  } catch (err) {
+    container.innerHTML = '<div class="text-center py-8 text-red-500">월마감 리포트 로드 실패</div>';
+  }
+}
+
+// =====================================================
+// 8) 공통 유틸리티
+// =====================================================
+function showLoading(show) {
+  document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
+}
+
+function closeModal(event) {
+  if (event) event.target.closest('[onclick="closeModal(event)"]')?.remove();
+  else document.querySelector('[onclick="closeModal(event)"]')?.remove();
+}
+
+// 탭 전환
+document.addEventListener('click', (e) => {
+  if (e.target.classList.contains('tab-btn')) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-active'));
+    e.target.classList.add('tab-active');
+    
+    document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+    document.getElementById('tab-' + e.target.dataset.tab).style.display = 'block';
+    
+    // 탭별 데이터 로드
+    if (e.target.dataset.tab === 'list') loadASList();
+    if (e.target.dataset.tab === 'receivable') loadReceivableData();
+    if (e.target.dataset.tab === 'monthly') loadMonthlyReport();
+  }
+});
+
+// =====================================================
+// 앱 시작
+// =====================================================
+window.addEventListener('DOMContentLoaded', initApp);
+
+</script>
+
 </body>
 </html>
