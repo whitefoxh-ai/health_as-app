@@ -1117,7 +1117,7 @@ async function viewASDetail(asNo) {
           <div class="grid md:grid-cols-3 gap-4 mb-4 bg-orange-50 p-4 rounded-lg">
             <div>
               <label class="label">세금계산서</label>
-              <select id="editTaxInvoice" class="input">
+              <select id="editTaxInvoice" class="input" onchange="calculateTotal()">
                 ${(MASTER_DATA?.taxInvoices || ['해당없음','발행','미발행']).map(t => `<option ${t === detail.taxInvoice ? 'selected' : ''}>${t}</option>`).join('')}
               </select>
             </div>
