@@ -216,22 +216,34 @@ function renderHomeTab(dash) {
     </div>
 
     <div class="card">
-      <h3 class="text-xl font-black text-gray-800 mb-4">📅 오늘 방문 예정 (${dash?.todayVisitCount || 0}건)</h3>
-      ${dash?.todaySchedule?.length > 0 ? `
-        <div class="space-y-3">
-          ${dash.todaySchedule.map(item => `
-            <div class="border-2 rounded-lg p-4 ${item.priority === '긴급' ? 'border-red-400 bg-red-50' : 'border-gray-200'} hover:shadow-md cursor-pointer" onclick="viewASDetail('${item.asNo}')">
-              <div class="flex justify-between items-start mb-2">
-                <span class="font-bold text-blue-600">${item.asNo}</span>
-                <span class="text-sm font-bold px-2 py-1 rounded ${getStatusColor(item.status)}">${item.status}</span>
-              </div>
-              <div class="text-sm font-medium">${item.centerName || item.customerName}</div>
-              <div class="text-sm text-gray-600">${item.equipmentType} - ${item.symptom}</div>
+  <h3 class="text-xl font-black text-gray-800 mb-4">📅 오늘 방문 예정 (${dash?.todayVisitCount || 0}건)</h3>
+  ${dash?.todaySchedule?.length > 0 ? `
+    <div class="space-y-3">
+      ${dash.todaySchedule.map(item => `
+        <div class="border-2 rounded-lg p-4 ${item.priority === '긴급' ? 'border-red-400 bg-red-50' : 'border-gray-200'} hover:shadow-md">
+          <div class="flex justify-between items-start mb-2">
+            <span class="font-bold text-blue-600 cursor-pointer hover:underline" onclick="viewASDetail('${item.asNo}')">${item.asNo}</span>
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-bold px-2 py-1 rounded ${getStatusColor(item.status)}">${item.status}</span>
+              <select class="text-xs border rounded px-1 py-1 bg-white cursor-pointer hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300" 
+                      onchange="quickChangeStatus('${item.asNo}', this.value, this)"
+                      onclick="event.stopPropagation()">
+                <option value="">변경▼</option>
+                <option value="처리중">처리중</option>
+                <option value="완료">✓ 완료</option>
+                <option value="부품주문">부품주문</option>
+                <option value="보류">보류</option>
+                <option value="재방문">재방문</option>
+              </select>
             </div>
-          `).join('')}
+          </div>
+          <div class="text-sm font-medium cursor-pointer" onclick="viewASDetail('${item.asNo}')">${item.centerName || item.customerName}</div>
+          <div class="text-sm text-gray-600">${item.equipmentType} - ${item.symptom}</div>
         </div>
-      ` : '<p class="text-gray-500 text-center py-8">오늘 방문 예정 건이 없습니다.</p>'}
+      `).join('')}
     </div>
+  ` : '<p class="text-gray-500 text-center py-8">오늘 방문 예정 건이 없습니다.</p>'}
+</div>
 
     <div class="grid md:grid-cols-4 gap-4">
       <button onclick="switchTab('reception')" class="card bg-blue-600 text-white text-center hover:bg-blue-700">
@@ -722,6 +734,51 @@ function getStatusColor(status) {
 // =====================================================
 // AS 상세 (세금계산서 + 세액 + 사진 + 단건 묶음 구분)
 // =====================================================
+// =====================================================
+// 오늘 방문예정에서 빠른 상태 변경
+// =====================================================
+async function quickChangeStatus(asNo, newStatus, selectElement) {
+  if (!newStatus) return;
+  
+  if (!confirm(`[${asNo}]\n\n"${newStatus}" 상태로 변경하시겠습니까?`)) {
+    selectElement.value = '';
+    return;
+  }
+  
+  try {
+    selectElement.disabled = true;
+    selectElement.style.opacity = '0.5';
+    
+    const params = {
+      action: 'quickUpdateStatus',
+      data: encodeURIComponent(JSON.stringify({ 
+        asNo: asNo, 
+        status: newStatus 
+      }))
+    };
+    
+    const url = API_BASE + '?' + Object.keys(params).map(k => k + '=' + params[k]).join('&');
+    const response = await fetch(url);
+    const result = await response.json();
+    
+    if (result.error) {
+      throw new Error(result.message);
+    }
+    
+    alert(`${asNo} → ${newStatus} 변경 완료`);
+    
+    // 대시보드 새로고침
+    loadDashboard();
+    
+  } catch (err) {
+    console.error('상태 변경 오류:', err);
+    alert('상태 변경 실패: ' + err.message);
+    selectElement.value = '';
+  } finally {
+    selectElement.disabled = false;
+    selectElement.style.opacity = '1';
+  }
+}
 async function viewASDetail(asNo) {
   try {
     const detail = await callGAS('getASDetail', { asNo });
