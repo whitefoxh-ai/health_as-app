@@ -552,10 +552,16 @@ function addEquipmentItem() {
         const sub = (detail.asFee || 0) + (detail.travelCost || 0) + (detail.otherCost || 0);
         const tax = detail.taxInvoice === '발행' ? Math.round(sub * 0.1) : 0;
         return (sub + tax - (detail.materialCost || 0)).toLocaleString() + '원';
-      })()}
+            })()}
     </span>
   </div>
 </div>
+    `;
+    
+    // 여기에 모달 표시 코드가 있어야 함
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
 function removeEquipmentItem(idx) {
   document.getElementById(`item-${idx}`)?.remove();
   calcGrandTotal();
