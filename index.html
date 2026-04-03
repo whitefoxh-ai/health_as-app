@@ -767,8 +767,8 @@ async function quickChangeStatus(asNo, newStatus, selectElement) {
     
     alert(`${asNo} → ${newStatus} 변경 완료`);
     
-    // 대시보드 새로고침
-    loadDashboard();
+    // ✅ 페이지 새로고침
+    location.reload();
     
   } catch (err) {
     console.error('상태 변경 오류:', err);
