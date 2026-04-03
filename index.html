@@ -537,28 +537,18 @@ function addEquipmentItem() {
 <div class="bg-blue-50 border-2 border-blue-300 p-3 rounded mb-4">
   <div class="flex justify-between items-center mb-2">
     <span class="font-bold text-blue-700">총 청구액</span>
-    <span id="display_total" class="text-xl font-black text-blue-600">
-      ${(() => {
-        const sub = (detail.asFee || 0) + (detail.travelCost || 0) + (detail.otherCost || 0);
-        const tax = detail.taxInvoice === '발행' ? Math.round(sub * 0.1) : 0;
-        return (sub + tax).toLocaleString() + '원';
-      })()}
-    </span>
+    <span id="display_total" class="text-xl font-black text-blue-600">0원</span>
   </div>
   <div class="flex justify-between items-center pt-2 border-t">
     <span class="font-bold text-green-700">마진 (청구액 - 자재비)</span>
-    <span id="display_margin" class="text-xl font-black text-green-600">
-      ${(() => {
-        const sub = (detail.asFee || 0) + (detail.travelCost || 0) + (detail.otherCost || 0);
-        const tax = detail.taxInvoice === '발행' ? Math.round(sub * 0.1) : 0;
-        return (sub + tax - (detail.materialCost || 0)).toLocaleString() + '원';
-            })()}
-    </span>
+    <span id="display_margin" class="text-xl font-black text-green-600">0원</span>
   </div>
 </div>
     `;
+
+    // 초기 합계 계산
+    setTimeout(() => calculateTotal(), 100);
     
-    // 여기에 모달 표시 코드가 있어야 함
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 }
 
@@ -1449,11 +1439,37 @@ function calculateTotal() {
   const travelCost = Number(document.getElementById('edit_travelCost')?.value || 0);
   const otherCost = Number(document.getElementById('edit_otherCost')?.value || 0);
   
-  const total = asFee + materialCost + travelCost + otherCost;
+  const taxInvoiceEl = document.getElementById('edit_taxInvoice');
+  const taxInvoice = taxInvoiceEl ? taxInvoiceEl.value : '';
   
+  // 청구액 = AS비용 + 출장비 + 기타 (자재비 제외)
+  const subTotal = asFee + travelCost + otherCost;
+  
+  // 세액 (발행 시 10%)
+  const taxAmount = (taxInvoice === '발행') ? Math.round(subTotal * 0.1) : 0;
+  
+  // 총 청구액
+  const totalWithTax = subTotal + taxAmount;
+  
+  // 마진 = 청구액 - 자재비
+  const margin = totalWithTax - materialCost;
+  
+  // 화면 표시
   const displayEl = document.getElementById('display_total');
   if (displayEl) {
-    displayEl.textContent = total.toLocaleString() + '원';
+    if (taxAmount > 0) {
+      displayEl.innerHTML = `${totalWithTax.toLocaleString()}원 <span class="text-sm text-gray-500">(세액 ${taxAmount.toLocaleString()}원)</span>`;
+    } else {
+      displayEl.textContent = totalWithTax.toLocaleString() + '원';
+    }
+  }
+  
+  const marginEl = document.getElementById('display_margin');
+  if (marginEl) {
+    marginEl.textContent = margin.toLocaleString() + '원';
+    marginEl.className = margin >= 0 
+      ? 'text-xl font-black text-green-600' 
+      : 'text-xl font-black text-red-600';
   }
 }
 
