@@ -429,7 +429,6 @@ function renderReceptionTab() {
 
   addEquipmentItem();
 }
-
 function addEquipmentItem() {
   const container = document.getElementById('equipmentItemsContainer');
   const idx = itemIndex++;
@@ -442,114 +441,96 @@ function addEquipmentItem() {
       </div>
       
       <div class="grid md:grid-cols-4 gap-3 mb-3">
-        <div>
-          <label class="label">기구종류 *</label>
-          <select id="equipType-${idx}" class="input">
-            ${(MASTER_DATA?.equipmentTypes || ['런닝머신']).map(e => `<option>${e}</option>`).join('')}
-          </select>
+        <div><label class="label">기구종류</label>
+          <select id="equipType-${idx}" class="input">${(MASTER_DATA?.equipmentTypes || ['런닝머신']).map(e => `<option>${e}</option>`).join('')}</select>
         </div>
-        <div>
-          <label class="label">브랜드</label>
-          <select id="brand-${idx}" class="input">
-            ${(MASTER_DATA?.brands || ['직접입력']).map(b => `<option>${b}</option>`).join('')}
-          </select>
+        <div><label class="label">브랜드</label>
+          <select id="brand-${idx}" class="input">${(MASTER_DATA?.brands || ['직접입력']).map(b => `<option>${b}</option>`).join('')}</select>
         </div>
-        <div>
-          <label class="label">모델명</label>
-          <input type="text" id="modelName-${idx}" class="input">
-        </div>
-        <div>
-          <label class="label">시리얼번호</label>
-          <input type="text" id="serialNo-${idx}" class="input">
-        </div>
+        <div><label class="label">모델명</label><input type="text" id="modelName-${idx}" class="input"></div>
+        <div><label class="label">시리얼번호</label><input type="text" id="serialNo-${idx}" class="input"></div>
       </div>
 
       <div class="mb-3">
-        <label class="label">고장증상 (필수) *</label>
+        <label class="label">고장증상 *</label>
         <textarea id="symptom-${idx}" class="input" rows="2"></textarea>
       </div>
 
-     <!-- AS비용: 수량 x 단가 -->
-<div class="bg-blue-50 p-3 rounded-lg mb-3">
-  <label class="text-sm font-bold text-blue-700">💰 AS비용 (수량 × 단가)</label>
-  <div class="grid grid-cols-3 gap-3 mt-2">
-    <div>
-      <label class="text-xs text-gray-600">수량</label>
-      <input type="number" id="edit_asQty" value="1" min="1" class="w-full border rounded p-2" onchange="calcEditAsFee()">
-    </div>
-    <div>
-      <label class="text-xs text-gray-600">단가</label>
-      <input type="number" id="edit_asUnitPrice" value="${detail.asFee || 0}" class="w-full border rounded p-2" onchange="calcEditAsFee()">
-    </div>
-    <div>
-      <label class="text-xs text-gray-600">AS비용</label>
-      <input type="number" id="edit_asFee" value="${detail.asFee || 0}" class="w-full border rounded p-2 bg-yellow-100 font-bold" readonly>
-    </div>
-  </div>
-</div>
+      <div class="grid grid-cols-2 gap-3 mb-3">
+        <!-- AS비용 -->
+        <div class="bg-blue-50 p-2 rounded">
+          <label class="text-xs font-bold text-blue-700">AS비용 (수량×단가)</label>
+          <div class="flex gap-1 mt-1">
+            <input type="number" id="qty-${idx}" value="1" class="input w-16" oninput="calcItemRow(${idx})">
+            <input type="number" id="unitPrice-${idx}" placeholder="단가" class="input flex-1" oninput="calcItemRow(${idx})">
+            <input type="number" id="asFee-${idx}" class="input w-24 bg-yellow-100" readonly>
+          </div>
+        </div>
+        <!-- 자재비 -->
+        <div class="bg-yellow-50 p-2 rounded">
+          <label class="text-xs font-bold text-yellow-700">자재비 (수량×단가)</label>
+          <div class="flex gap-1 mt-1">
+            <input type="number" id="matQty-${idx}" value="0" class="input w-16" oninput="calcItemRow(${idx})">
+            <input type="number" id="matUnitPrice-${idx}" placeholder="단가" class="input flex-1" oninput="calcItemRow(${idx})">
+            <input type="number" id="materialCost-${idx}" class="input w-24 bg-yellow-100" readonly>
+          </div>
+        </div>
+      </div>
 
-<!-- 자재비: 수량 x 단가 -->
-<div class="bg-yellow-50 p-3 rounded-lg mb-3">
-  <label class="text-sm font-bold text-yellow-700">🔩 자재비 (수량 × 단가) - 원가</label>
-  <div class="grid grid-cols-3 gap-3 mt-2">
-    <div>
-      <label class="text-xs text-gray-600">수량</label>
-      <input type="number" id="edit_matQty" value="${detail.materialCost > 0 ? 1 : 0}" min="0" class="w-full border rounded p-2" onchange="calcEditMaterialCost()">
+      <div class="grid grid-cols-2 gap-3 mb-3">
+        <div><label class="label">출장비</label><input type="number" id="travelCost-${idx}" class="input" oninput="calcItemRow(${idx})"></div>
+        <div><label class="label">기타비용</label><input type="number" id="otherCost-${idx}" class="input" oninput="calcItemRow(${idx})"></div>
+      </div>
+      
+      <div class="text-right border-t pt-2">
+        청구액(AS+출장+기타): <span id="itemSubtotal-${idx}" class="font-bold text-blue-600">0원</span>
+        <span class="mx-2">/ 마진(청구액-자재): <span id="itemMargin-${idx}" class="font-bold text-green-600">0원</span></span>
+      </div>
     </div>
-    <div>
-      <label class="text-xs text-gray-600">단가</label>
-      <input type="number" id="edit_matUnitPrice" value="${detail.materialCost || 0}" class="w-full border rounded p-2" onchange="calcEditMaterialCost()">
-    </div>
-    <div>
-      <label class="text-xs text-gray-600">자재비</label>
-      <input type="number" id="edit_materialCost" value="${detail.materialCost || 0}" class="w-full border rounded p-2 bg-yellow-100 font-bold" readonly>
-    </div>
-  </div>
-</div>
+  `;
+  container.insertAdjacentHTML('beforeend', itemHtml);
+}
 
-<!-- 출장비, 기타비용 -->
-<div class="grid grid-cols-2 gap-3 mb-4">
-  <div class="bg-white border p-3 rounded text-center">
-    <div class="text-xs text-gray-500">출장비</div>
-    <input type="number" id="edit_travelCost" value="${detail.travelCost || 0}" 
-           class="w-full text-center font-bold border rounded p-1 mt-1"
-           onchange="calculateTotal()">
-  </div>
-  <div class="bg-white border p-3 rounded text-center">
-    <div class="text-xs text-gray-500">기타비용</div>
-    <input type="number" id="edit_otherCost" value="${detail.otherCost || 0}" 
-           class="w-full text-center font-bold border rounded p-1 mt-1"
-           onchange="calculateTotal()">
-  </div>
-</div>
-
-<!-- 세금계산서 선택 -->
-<div class="mb-4">
-  <label class="block text-sm font-bold mb-1">세금계산서</label>
-  <select id="edit_taxInvoice" class="w-full border rounded p-2" onchange="calculateTotal()">
-    <option value="해당없음" ${detail.taxInvoice === '해당없음' ? 'selected' : ''}>해당없음</option>
-    <option value="발행" ${detail.taxInvoice === '발행' ? 'selected' : ''}>발행</option>
-    <option value="미발행" ${detail.taxInvoice === '미발행' ? 'selected' : ''}>미발행</option>
-  </select>
-</div>
-
-<!-- 합계 표시 -->
-<div class="bg-blue-50 border-2 border-blue-300 p-3 rounded mb-4">
-  <div class="flex justify-between items-center mb-2">
-    <span class="font-bold text-blue-700">총 청구액</span>
-    <span id="display_total" class="text-xl font-black text-blue-600">0원</span>
-  </div>
-  <div class="flex justify-between items-center pt-2 border-t">
-    <span class="font-bold text-green-700">마진 (청구액 - 자재비)</span>
-    <span id="display_margin" class="text-xl font-black text-green-600">0원</span>
-  </div>
-</div>
-    `;
-
-    // 초기 합계 계산
-    setTimeout(() => calculateTotal(), 100);
-    
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
+// =====================================================
+// 신규접수: 장비별 금액 계산 (수량 × 단가)
+// =====================================================
+function calcItemRow(idx) {
+  // 1. AS비용 계산
+  const qty = Number(document.getElementById(`qty-${idx}`)?.value || 0);
+  const unitPrice = Number(document.getElementById(`unitPrice-${idx}`)?.value || 0);
+  const asFee = qty * unitPrice;
+  
+  // 2. 자재비 계산
+  const matQty = Number(document.getElementById(`matQty-${idx}`)?.value || 0);
+  const matUnitPrice = Number(document.getElementById(`matUnitPrice-${idx}`)?.value || 0);
+  const matCost = matQty * matUnitPrice;
+  
+  // 3. 출장비, 기타비용
+  const travel = Number(document.getElementById(`travelCost-${idx}`)?.value || 0);
+  const other = Number(document.getElementById(`otherCost-${idx}`)?.value || 0);
+  
+  // 4. 값 넣기
+  const asFeeEl = document.getElementById(`asFee-${idx}`);
+  if (asFeeEl) asFeeEl.value = asFee;
+  
+  const matCostEl = document.getElementById(`materialCost-${idx}`);
+  if (matCostEl) matCostEl.value = matCost;
+  
+  // 5. 청구액 = AS + 출장 + 기타 (자재비 제외!)
+  const subTotal = asFee + travel + other;
+  const subTotalEl = document.getElementById(`itemSubtotal-${idx}`);
+  if (subTotalEl) subTotalEl.textContent = subTotal.toLocaleString() + '원';
+  
+  // 6. 마진 = 청구액 - 자재비
+  const margin = subTotal - matCost;
+  const marginEl = document.getElementById(`itemMargin-${idx}`);
+  if (marginEl) {
+    marginEl.textContent = margin.toLocaleString() + '원';
+    marginEl.className = margin >= 0 ? 'font-bold text-green-600' : 'font-bold text-red-600';
+  }
+  
+  // 7. 전체 합계 계산
+  calcGrandTotal();
 }
 
 function removeEquipmentItem(idx) {
@@ -619,9 +600,8 @@ function calcItemTotal(idx) {
   
   calcGrandTotal();
 }
-
 // =====================================================
-// 전체 합계 계산
+// 신규접수: 전체 합계 계산
 // =====================================================
 function calcGrandTotal() {
   let totalSubtotal = 0;  // 청구액 합계
@@ -636,6 +616,7 @@ function calcGrandTotal() {
     const travelCost = Number(document.getElementById(`travelCost-${i}`)?.value || 0);
     const otherCost = Number(document.getElementById(`otherCost-${i}`)?.value || 0);
     
+    // 청구액 = AS + 출장 + 기타 (자재비 제외!)
     totalSubtotal += asFee + travelCost + otherCost;
     totalMaterial += materialCost;
   }
@@ -647,14 +628,11 @@ function calcGrandTotal() {
   // 총 청구액 = 소계 + 세액
   const grandTotal = totalSubtotal + taxAmount;
   
-  // 총 마진 = 총 청구액 - 총 자재비
-  const totalMargin = grandTotal - totalMaterial;
-  
   // 화면 표시
   const grandTotalEl = document.getElementById('grandTotal');
   if (grandTotalEl) {
     if (taxAmount > 0) {
-      grandTotalEl.innerHTML = `${grandTotal.toLocaleString()}원 <span class="text-sm text-gray-500">(세액 ${taxAmount.toLocaleString()}원)</span>`;
+      grandTotalEl.innerHTML = `${grandTotal.toLocaleString()}원 <span class="text-sm">(세액 ${taxAmount.toLocaleString()}원)</span>`;
     } else {
       grandTotalEl.textContent = grandTotal.toLocaleString() + '원';
     }
