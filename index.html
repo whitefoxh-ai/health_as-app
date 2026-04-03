@@ -1298,19 +1298,6 @@ async function addNewPayment(asNo) {
   } catch (err) {}
 }
 
-// 보고서 생성
-async function generateReport(asNo) {
-  if (!confirm('작업완료 보고서(PDF)를 생성하시겠습니까?')) return;
-
-  try {
-    const result = await callGAS('generateCompletionReportPdf', { asNo });
-    if (result.pdfUrl) {
-      alert('✅ 보고서 생성 완료');
-      window.open(result.pdfUrl, '_blank');
-    }
-  } catch (err) {}
-}
-
 // AS 삭제
 async function deleteASConfirm(asNo) {
   if (!confirm(`정말 삭제하시겠습니까?\n\n접수번호: ${asNo}\n\n⚠️ 관련 입금내역, 사진도 함께 삭제됩니다.`)) return;
