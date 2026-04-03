@@ -1089,9 +1089,7 @@ async function viewASDetail(asNo) {
   </div>
 </div>
 
-<!-- 세금계산서 -->
-<div class="mb-3">
-  <label class="text-sm font-bold">세금계산서</label>
+
   <select id="edit_taxInvoice" class="w-full border rounded p-2 mt-1" onchange="calculateTotal()">
     <option value="해당없음" ${detail.taxInvoice === '해당없음' ? 'selected' : ''}>해당없음</option>
     <option value="발행" ${detail.taxInvoice === '발행' ? 'selected' : ''}>발행</option>
