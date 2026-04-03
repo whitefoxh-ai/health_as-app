@@ -1405,20 +1405,45 @@ function closeModal() {
 
 // AS 수정 저장
 async function saveASChanges(asNo) {
-  const data = {
-    asNo,
-    status: document.getElementById('editStatus')?.value,
-    technician: document.getElementById('editTechnician')?.value,
-    priority: document.getElementById('editPriority')?.value,
-    repairDetail: document.getElementById('editRepairDetail')?.value
-  };
-
   try {
-    await callGAS('saveASUpdate', { data: encodeURIComponent(JSON.stringify(data)) });
+    const updateData = {
+      asNo: asNo,
+      asFee: Number(document.getElementById('edit_asFee')?.value || 0),
+      materialCost: Number(document.getElementById('edit_materialCost')?.value || 0),
+      travelCost: Number(document.getElementById('edit_travelCost')?.value || 0),
+      otherCost: Number(document.getElementById('edit_otherCost')?.value || 0),
+      taxInvoice: document.getElementById('edit_taxInvoice')?.value || '해당없음'  // ✅ 추가
+    };
+    
+    // 상태, 담당기사 등 다른 필드도 있으면 추가
+    const statusEl = document.getElementById('edit_status');
+    if (statusEl) updateData.status = statusEl.value;
+    
+    const technicianEl = document.getElementById('edit_technician');
+    if (technicianEl) updateData.technician = technicianEl.value;
+    
+    const memoEl = document.getElementById('edit_memo');
+    if (memoEl) updateData.memo = memoEl.value;
+    
+    const repairDetailEl = document.getElementById('edit_repairDetail');
+    if (repairDetailEl) updateData.repairDetail = repairDetailEl.value;
+    
+    console.log('저장 데이터:', updateData);  // 디버깅용
+    
+    const result = await callGAS('saveASUpdate', { data: JSON.stringify(updateData) });
+    
+    if (result.error) {
+      throw new Error(result.message);
+    }
+    
     alert('✅ 저장 완료');
     closeModal();
-    viewASDetail(asNo);
-  } catch (err) {}
+    location.reload();
+    
+  } catch (err) {
+    console.error('저장 오류:', err);
+    alert('저장 실패: ' + (err.message || '알 수 없는 오류'));
+  }
 }
 
 // 입금 추가
@@ -1636,7 +1661,7 @@ async function saveASChanges(asNo) {
 function openAddItemModal(originalAsNo) {
   const modalHtml = `
     <div class="modal-overlay" id="addItemModal">
-      <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-content" style="max-width: 550px;">
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-xl font-black text-green-600">➕ 추가 접수</h3>
           <button onclick="closeAddItemModal()" class="text-gray-400 hover:text-gray-700 text-2xl">&times;</button>
@@ -1648,39 +1673,85 @@ function openAddItemModal(originalAsNo) {
         </p>
         
         <div class="space-y-3">
-          <div>
-            <label class="block text-sm font-bold mb-1">기구종류 *</label>
-            <input type="text" id="add_equipmentType" class="w-full border rounded p-2" placeholder="예: 런닝머신">
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-sm font-bold mb-1">기구종류 *</label>
+              <input type="text" id="add_equipmentType" class="w-full border rounded p-2" placeholder="예: 런닝머신">
+            </div>
+            <div>
+              <label class="block text-sm font-bold mb-1">브랜드</label>
+              <input type="text" id="add_brand" class="w-full border rounded p-2" placeholder="예: 뉴텍">
+            </div>
           </div>
-          <div>
-            <label class="block text-sm font-bold mb-1">브랜드</label>
-            <input type="text" id="add_brand" class="w-full border rounded p-2" placeholder="예: 뉴텍">
-          </div>
+          
           <div>
             <label class="block text-sm font-bold mb-1">모델명</label>
             <input type="text" id="add_modelName" class="w-full border rounded p-2">
           </div>
+          
           <div>
             <label class="block text-sm font-bold mb-1">고장증상 *</label>
             <textarea id="add_symptom" class="w-full border rounded p-2" rows="2" placeholder="증상을 입력하세요"></textarea>
           </div>
           
+          <!-- AS비용: 수량 × 단가 -->
+          <div class="bg-blue-50 p-3 rounded-lg">
+            <label class="text-sm font-bold text-blue-700">💰 AS비용 (수량 × 단가)</label>
+            <div class="grid grid-cols-3 gap-2 mt-2">
+              <div>
+                <label class="text-xs text-gray-600">수량</label>
+                <input type="number" id="add_asQty" value="1" min="1" class="w-full border rounded p-2 text-center" onchange="calcAddAsFee()">
+              </div>
+              <div>
+                <label class="text-xs text-gray-600">단가</label>
+                <input type="number" id="add_asUnitPrice" value="0" class="w-full border rounded p-2 text-center" onchange="calcAddAsFee()">
+              </div>
+              <div>
+                <label class="text-xs text-gray-600">AS비용</label>
+                <input type="number" id="add_asFee" class="w-full border rounded p-2 text-center bg-yellow-100 font-bold" readonly>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 자재비: 수량 × 단가 -->
+          <div class="bg-yellow-50 p-3 rounded-lg">
+            <label class="text-sm font-bold text-yellow-700">🔩 자재비 (수량 × 단가) - 원가</label>
+            <div class="grid grid-cols-3 gap-2 mt-2">
+              <div>
+                <label class="text-xs text-gray-600">수량</label>
+                <input type="number" id="add_matQty" value="0" min="0" class="w-full border rounded p-2 text-center" onchange="calcAddMaterialCost()">
+              </div>
+              <div>
+                <label class="text-xs text-gray-600">단가</label>
+                <input type="number" id="add_matUnitPrice" value="0" class="w-full border rounded p-2 text-center" onchange="calcAddMaterialCost()">
+              </div>
+              <div>
+                <label class="text-xs text-gray-600">자재비</label>
+                <input type="number" id="add_materialCost" class="w-full border rounded p-2 text-center bg-yellow-100 font-bold" readonly>
+              </div>
+            </div>
+          </div>
+          
           <div class="grid grid-cols-2 gap-2">
             <div>
-              <label class="block text-sm font-bold mb-1">AS비용</label>
-              <input type="number" id="add_asFee" class="w-full border rounded p-2" value="0">
-            </div>
-            <div>
-              <label class="block text-sm font-bold mb-1">자재비</label>
-              <input type="number" id="add_materialCost" class="w-full border rounded p-2" value="0">
-            </div>
-            <div>
               <label class="block text-sm font-bold mb-1">출장비</label>
-              <input type="number" id="add_travelCost" class="w-full border rounded p-2" value="0">
+              <input type="number" id="add_travelCost" class="w-full border rounded p-2" value="0" onchange="calcAddTotal()">
             </div>
             <div>
               <label class="block text-sm font-bold mb-1">기타비용</label>
-              <input type="number" id="add_otherCost" class="w-full border rounded p-2" value="0">
+              <input type="number" id="add_otherCost" class="w-full border rounded p-2" value="0" onchange="calcAddTotal()">
+            </div>
+          </div>
+          
+          <!-- 합계 표시 -->
+          <div class="bg-gray-100 p-3 rounded-lg">
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-sm">청구액 (AS+출장+기타)</span>
+              <span id="add_subtotal" class="font-bold text-blue-600">0원</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm">마진 (청구액 - 자재비)</span>
+              <span id="add_margin" class="font-bold text-green-600">0원</span>
             </div>
           </div>
           
@@ -1698,17 +1769,68 @@ function openAddItemModal(originalAsNo) {
     </div>
   `;
   
-   document.body.insertAdjacentHTML('beforeend', modalHtml);
-  
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
 }
 
 // =====================================================
-// 추가 접수 모달 닫기
+// 추가접수: AS비용 계산 (수량 × 단가)
 // =====================================================
+function calcAddAsFee() {
+  const qty = Number(document.getElementById('add_asQty')?.value || 1);
+  const unitPrice = Number(document.getElementById('add_asUnitPrice')?.value || 0);
+  const asFee = qty * unitPrice;
+  
+  const asFeeEl = document.getElementById('add_asFee');
+  if (asFeeEl) asFeeEl.value = asFee;
+  
+  calcAddTotal();
+}
+
+// =====================================================
+// 추가접수: 자재비 계산 (수량 × 단가)
+// =====================================================
+function calcAddMaterialCost() {
+  const qty = Number(document.getElementById('add_matQty')?.value || 0);
+  const unitPrice = Number(document.getElementById('add_matUnitPrice')?.value || 0);
+  const materialCost = qty * unitPrice;
+  
+  const materialEl = document.getElementById('add_materialCost');
+  if (materialEl) materialEl.value = materialCost;
+  
+  calcAddTotal();
+}
+
+// =====================================================
+// 추가접수: 합계 계산
+// =====================================================
+function calcAddTotal() {
+  const asFee = Number(document.getElementById('add_asFee')?.value || 0);
+  const materialCost = Number(document.getElementById('add_materialCost')?.value || 0);
+  const travelCost = Number(document.getElementById('add_travelCost')?.value || 0);
+  const otherCost = Number(document.getElementById('add_otherCost')?.value || 0);
+  
+  // 청구액 = AS + 출장 + 기타 (자재비 제외!)
+  const subtotal = asFee + travelCost + otherCost;
+  
+  // 마진 = 청구액 - 자재비
+  const margin = subtotal - materialCost;
+  
+  // 화면 표시
+  const subtotalEl = document.getElementById('add_subtotal');
+  if (subtotalEl) subtotalEl.textContent = subtotal.toLocaleString() + '원';
+  
+  const marginEl = document.getElementById('add_margin');
+  if (marginEl) {
+    marginEl.textContent = margin.toLocaleString() + '원';
+    marginEl.className = margin >= 0 ? 'font-bold text-green-600' : 'font-bold text-red-600';
+  }
+}
+
 function closeAddItemModal() {
   const modal = document.getElementById('addItemModal');
   if (modal) modal.remove();
-}
+}  
+ 
 
 // =====================================================
 // 추가 접수 제출
@@ -1741,6 +1863,8 @@ async function submitAddItem(originalAsNo) {
       otherCost: Number(document.getElementById('add_otherCost')?.value || 0),
       memo: document.getElementById('add_memo')?.value?.trim() || ''
     };
+    
+    console.log('추가접수 데이터:', data);
     
     const result = await callGAS('addToExistingAS', { data: JSON.stringify(data) });
     
