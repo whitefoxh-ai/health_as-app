@@ -469,100 +469,198 @@ function addEquipmentItem() {
         <textarea id="symptom-${idx}" class="input" rows="2"></textarea>
       </div>
 
-      <!-- 수량 x 단가 -->
-      <div class="bg-blue-50 p-3 rounded-lg mb-3">
-        <label class="label text-blue-700">💰 AS비용 (수량 × 단가)</label>
-        <div class="grid grid-cols-3 gap-3 mt-2">
-          <div>
-            <label class="text-xs text-gray-600">수량</label>
-            <input type="number" id="qty-${idx}" value="1" min="1" class="input" oninput="calcAsFee(${idx})">
-          </div>
-          <div>
-            <label class="text-xs text-gray-600">단가</label>
-            <input type="number" id="unitPrice-${idx}" placeholder="0" class="input" oninput="calcAsFee(${idx})">
-          </div>
-          <div>
-            <label class="text-xs text-gray-600">AS비용</label>
-            <input type="number" id="asFee-${idx}" class="input bg-yellow-100 font-bold" readonly>
-          </div>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-3 gap-3 mb-3">
-        <div>
-          <label class="label">자재비</label>
-          <input type="number" id="materialCost-${idx}" placeholder="0" class="input" oninput="calcItemTotal(${idx})">
-        </div>
-        <div>
-          <label class="label">출장비</label>
-          <input type="number" id="travelCost-${idx}" placeholder="0" class="input" oninput="calcItemTotal(${idx})">
-        </div>
-        <div>
-          <label class="label">기타비용</label>
-          <input type="number" id="otherCost-${idx}" placeholder="0" class="input" oninput="calcItemTotal(${idx})">
-        </div>
-      </div>
-
-      <div class="bg-gray-100 p-3 rounded-lg text-right">
-        <span>소계: <strong id="itemTotal-${idx}" class="text-blue-600 text-xl">0원</strong></span>
-        <span class="ml-4 text-sm text-gray-500">(부가세 별도)</span>
-      </div>
+     <!-- AS비용: 수량 x 단가 -->
+<div class="bg-blue-50 p-3 rounded-lg mb-3">
+  <label class="text-sm font-bold text-blue-700">💰 AS비용 (수량 × 단가)</label>
+  <div class="grid grid-cols-3 gap-3 mt-2">
+    <div>
+      <label class="text-xs text-gray-600">수량</label>
+      <input type="number" id="edit_asQty" value="1" min="1" class="w-full border rounded p-2" onchange="calcEditAsFee()">
     </div>
-  `;
-  
-  container.insertAdjacentHTML('beforeend', itemHtml);
-}
+    <div>
+      <label class="text-xs text-gray-600">단가</label>
+      <input type="number" id="edit_asUnitPrice" value="${detail.asFee || 0}" class="w-full border rounded p-2" onchange="calcEditAsFee()">
+    </div>
+    <div>
+      <label class="text-xs text-gray-600">AS비용</label>
+      <input type="number" id="edit_asFee" value="${detail.asFee || 0}" class="w-full border rounded p-2 bg-yellow-100 font-bold" readonly>
+    </div>
+  </div>
+</div>
 
+<!-- 자재비: 수량 x 단가 -->
+<div class="bg-yellow-50 p-3 rounded-lg mb-3">
+  <label class="text-sm font-bold text-yellow-700">🔩 자재비 (수량 × 단가) - 원가</label>
+  <div class="grid grid-cols-3 gap-3 mt-2">
+    <div>
+      <label class="text-xs text-gray-600">수량</label>
+      <input type="number" id="edit_matQty" value="${detail.materialCost > 0 ? 1 : 0}" min="0" class="w-full border rounded p-2" onchange="calcEditMaterialCost()">
+    </div>
+    <div>
+      <label class="text-xs text-gray-600">단가</label>
+      <input type="number" id="edit_matUnitPrice" value="${detail.materialCost || 0}" class="w-full border rounded p-2" onchange="calcEditMaterialCost()">
+    </div>
+    <div>
+      <label class="text-xs text-gray-600">자재비</label>
+      <input type="number" id="edit_materialCost" value="${detail.materialCost || 0}" class="w-full border rounded p-2 bg-yellow-100 font-bold" readonly>
+    </div>
+  </div>
+</div>
+
+<!-- 출장비, 기타비용 -->
+<div class="grid grid-cols-2 gap-3 mb-4">
+  <div class="bg-white border p-3 rounded text-center">
+    <div class="text-xs text-gray-500">출장비</div>
+    <input type="number" id="edit_travelCost" value="${detail.travelCost || 0}" 
+           class="w-full text-center font-bold border rounded p-1 mt-1"
+           onchange="calculateTotal()">
+  </div>
+  <div class="bg-white border p-3 rounded text-center">
+    <div class="text-xs text-gray-500">기타비용</div>
+    <input type="number" id="edit_otherCost" value="${detail.otherCost || 0}" 
+           class="w-full text-center font-bold border rounded p-1 mt-1"
+           onchange="calculateTotal()">
+  </div>
+</div>
+
+<!-- 세금계산서 선택 -->
+<div class="mb-4">
+  <label class="block text-sm font-bold mb-1">세금계산서</label>
+  <select id="edit_taxInvoice" class="w-full border rounded p-2" onchange="calculateTotal()">
+    <option value="해당없음" ${detail.taxInvoice === '해당없음' ? 'selected' : ''}>해당없음</option>
+    <option value="발행" ${detail.taxInvoice === '발행' ? 'selected' : ''}>발행</option>
+    <option value="미발행" ${detail.taxInvoice === '미발행' ? 'selected' : ''}>미발행</option>
+  </select>
+</div>
+
+<!-- 합계 표시 -->
+<div class="bg-blue-50 border-2 border-blue-300 p-3 rounded mb-4">
+  <div class="flex justify-between items-center mb-2">
+    <span class="font-bold text-blue-700">총 청구액</span>
+    <span id="display_total" class="text-xl font-black text-blue-600">
+      ${(() => {
+        const sub = (detail.asFee || 0) + (detail.travelCost || 0) + (detail.otherCost || 0);
+        const tax = detail.taxInvoice === '발행' ? Math.round(sub * 0.1) : 0;
+        return (sub + tax).toLocaleString() + '원';
+      })()}
+    </span>
+  </div>
+  <div class="flex justify-between items-center pt-2 border-t">
+    <span class="font-bold text-green-700">마진 (청구액 - 자재비)</span>
+    <span id="display_margin" class="text-xl font-black text-green-600">
+      ${(() => {
+        const sub = (detail.asFee || 0) + (detail.travelCost || 0) + (detail.otherCost || 0);
+        const tax = detail.taxInvoice === '발행' ? Math.round(sub * 0.1) : 0;
+        return (sub + tax - (detail.materialCost || 0)).toLocaleString() + '원';
+      })()}
+    </span>
+  </div>
+</div>
 function removeEquipmentItem(idx) {
   document.getElementById(`item-${idx}`)?.remove();
   calcGrandTotal();
 }
 
+// =====================================================
+// AS비용 계산 (수량 × 단가)
+// =====================================================
 function calcAsFee(idx) {
   const qty = Number(document.getElementById(`qty-${idx}`)?.value || 1);
   const unitPrice = Number(document.getElementById(`unitPrice-${idx}`)?.value || 0);
   const asFee = qty * unitPrice;
   
-  const el = document.getElementById(`asFee-${idx}`);
-  if (el) el.value = asFee;
+  const asFeeEl = document.getElementById(`asFee-${idx}`);
+  if (asFeeEl) asFeeEl.value = asFee;
   
   calcItemTotal(idx);
 }
 
+// =====================================================
+// 자재비 계산 (수량 × 단가)
+// =====================================================
+function calcMaterialCost(idx) {
+  const qty = Number(document.getElementById(`matQty-${idx}`)?.value || 0);
+  const unitPrice = Number(document.getElementById(`matUnitPrice-${idx}`)?.value || 0);
+  const materialCost = qty * unitPrice;
+  
+  const materialEl = document.getElementById(`materialCost-${idx}`);
+  if (materialEl) materialEl.value = materialCost;
+  
+  calcItemTotal(idx);
+}
+
+// =====================================================
+// 장비별 소계 계산
+// =====================================================
 function calcItemTotal(idx) {
   const asFee = Number(document.getElementById(`asFee-${idx}`)?.value || 0);
   const materialCost = Number(document.getElementById(`materialCost-${idx}`)?.value || 0);
   const travelCost = Number(document.getElementById(`travelCost-${idx}`)?.value || 0);
   const otherCost = Number(document.getElementById(`otherCost-${idx}`)?.value || 0);
-  const total = asFee + materialCost + travelCost + otherCost;
   
-  const el = document.getElementById(`itemTotal-${idx}`);
-  if (el) el.textContent = total.toLocaleString() + '원';
+  // 청구액 = AS비용 + 출장비 + 기타비용 (자재비는 원가이므로 제외)
+  const subtotal = asFee + travelCost + otherCost;
+  
+  // 마진 = 청구액 - 자재비
+  const margin = subtotal - materialCost;
+  
+  // 화면 표시
+  const subtotalEl = document.getElementById(`itemSubtotal-${idx}`);
+  if (subtotalEl) subtotalEl.textContent = subtotal.toLocaleString() + '원';
+  
+  const materialEl = document.getElementById(`itemMaterial-${idx}`);
+  if (materialEl) materialEl.textContent = materialCost.toLocaleString() + '원';
+  
+  const marginEl = document.getElementById(`itemMargin-${idx}`);
+  if (marginEl) {
+    marginEl.textContent = margin.toLocaleString() + '원';
+    marginEl.className = margin >= 0 ? 'text-green-600 text-lg' : 'text-red-600 text-lg';
+  }
+  
+  // 기존 itemTotal (호환성)
+  const itemTotalEl = document.getElementById(`itemTotal-${idx}`);
+  if (itemTotalEl) itemTotalEl.textContent = subtotal.toLocaleString() + '원';
   
   calcGrandTotal();
 }
 
+// =====================================================
+// 전체 합계 계산
+// =====================================================
 function calcGrandTotal() {
-  let subTotal = 0;
+  let totalSubtotal = 0;  // 청구액 합계
+  let totalMaterial = 0;  // 자재비 합계
+  
   for (let i = 0; i < itemIndex; i++) {
-    const el = document.getElementById(`itemTotal-${i}`);
-    if (el) subTotal += Number(el.textContent.replace(/[^0-9]/g, '') || 0);
+    const itemEl = document.getElementById(`item-${i}`);
+    if (!itemEl) continue;
+    
+    const asFee = Number(document.getElementById(`asFee-${i}`)?.value || 0);
+    const materialCost = Number(document.getElementById(`materialCost-${i}`)?.value || 0);
+    const travelCost = Number(document.getElementById(`travelCost-${i}`)?.value || 0);
+    const otherCost = Number(document.getElementById(`otherCost-${i}`)?.value || 0);
+    
+    totalSubtotal += asFee + travelCost + otherCost;
+    totalMaterial += materialCost;
   }
   
-  // 부가세 계산
-  const taxInvoice = document.getElementById('taxInvoiceSelect')?.value || '해당없음';
-  let tax = 0;
-  if (taxInvoice === '발행') {
-    tax = Math.round(subTotal * 0.1);
-  }
+  // 세금계산서 발행 시 세액 추가
+  const taxInvoice = document.getElementById('taxInvoiceSelect')?.value || '';
+  const taxAmount = (taxInvoice === '발행') ? Math.round(totalSubtotal * 0.1) : 0;
   
-  const grandTotal = subTotal + tax;
-  const el = document.getElementById('grandTotal');
-  if (el) {
-    if (tax > 0) {
-      el.innerHTML = `${grandTotal.toLocaleString()}원 <span class="text-sm text-gray-500">(부가세 ${tax.toLocaleString()}원 포함)</span>`;
+  // 총 청구액 = 소계 + 세액
+  const grandTotal = totalSubtotal + taxAmount;
+  
+  // 총 마진 = 총 청구액 - 총 자재비
+  const totalMargin = grandTotal - totalMaterial;
+  
+  // 화면 표시
+  const grandTotalEl = document.getElementById('grandTotal');
+  if (grandTotalEl) {
+    if (taxAmount > 0) {
+      grandTotalEl.innerHTML = `${grandTotal.toLocaleString()}원 <span class="text-sm text-gray-500">(세액 ${taxAmount.toLocaleString()}원)</span>`;
     } else {
-      el.textContent = grandTotal.toLocaleString() + '원';
+      grandTotalEl.textContent = grandTotal.toLocaleString() + '원';
     }
   }
 }
@@ -1309,6 +1407,33 @@ async function deleteASConfirm(asNo) {
   } catch (err) {}
 }
 
+// =====================================================
+// 상세보기: AS비용 계산 (수량 × 단가)
+// =====================================================
+function calcEditAsFee() {
+  const qty = Number(document.getElementById('edit_asQty')?.value || 1);
+  const unitPrice = Number(document.getElementById('edit_asUnitPrice')?.value || 0);
+  const asFee = qty * unitPrice;
+  
+  const asFeeEl = document.getElementById('edit_asFee');
+  if (asFeeEl) asFeeEl.value = asFee;
+  
+  calculateTotal();
+}
+
+// =====================================================
+// 상세보기: 자재비 계산 (수량 × 단가)
+// =====================================================
+function calcEditMaterialCost() {
+  const qty = Number(document.getElementById('edit_matQty')?.value || 0);
+  const unitPrice = Number(document.getElementById('edit_matUnitPrice')?.value || 0);
+  const materialCost = qty * unitPrice;
+  
+  const materialEl = document.getElementById('edit_materialCost');
+  if (materialEl) materialEl.value = materialCost;
+  
+  calculateTotal();
+}
 // =====================================================
 // 금액 합계 계산
 // =====================================================
