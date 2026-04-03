@@ -1146,16 +1146,52 @@ async function addNewPayment(asNo) {
 }
 
 // 보고서 생성
+// =====================================================
+// PDF 생성 및 PC 직접 다운로드
+// =====================================================
 async function generateReport(asNo) {
-  if (!confirm('작업완료 보고서(PDF)를 생성하시겠습니까?')) return;
-
+  if (!asNo) {
+    alert('접수번호가 필요합니다.');
+    return;
+  }
+  
   try {
-    const result = await callGAS('generateCompletionReportPdf', { asNo });
-    if (result.pdfUrl) {
-      alert('✅ 보고서 생성 완료');
-      window.open(result.pdfUrl, '_blank');
+    // 로딩 표시
+    alert('PDF 생성 중... 잠시 기다려주세요.');
+    
+    const url = GAS_URL + '?action=generateCompletionReportPdf&asNo=' + encodeURIComponent(asNo);
+    const response = await fetch(url);
+    const result = await response.json();
+    
+    if (result.error) {
+      throw new Error(result.message);
     }
-  } catch (err) {}
+    
+    // Base64 → Blob 변환
+    const byteCharacters = atob(result.pdfBase64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: 'application/pdf' });
+    
+    // PC 다운로드 트리거
+    const downloadUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = result.fileName || '작업완료보고서_' + asNo + '.pdf';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(downloadUrl);
+    
+    alert('PDF 다운로드 완료!');
+    
+  } catch (err) {
+    console.error('PDF 생성 오류:', err);
+    alert('PDF 생성 실패: ' + err.message);
+  }
 }
 
 // AS 삭제
