@@ -1205,10 +1205,18 @@ async function viewASDetail(asNo) {
       </div>
     `;
     
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
+     document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
     document.getElementById('detailModal').addEventListener('click', function(e) {
       if (e.target === this) closeModal();
     });
+    
+    // 초기 합계 계산 (모달 렌더링 후)
+    setTimeout(() => {
+      calcEditAsFee();
+      calcEditMaterialCost();
+      calculateTotal();
+    }, 150);
     
   } catch (err) {}
 }
@@ -1691,13 +1699,7 @@ function openAddItemModal(originalAsNo) {
   `;
   
    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
-    // 초기 합계 계산 (모달 렌더링 후)
-    setTimeout(() => {
-      calcEditAsFee();
-      calcEditMaterialCost();
-      calculateTotal();
-    }, 150);
+  
 }
 
 // =====================================================
