@@ -757,7 +757,7 @@ async function quickChangeStatus(asNo, newStatus, selectElement) {
       }))
     };
     
-    const url = API_BASE + '?' + Object.keys(params).map(k => k + '=' + params[k]).join('&');
+    const url = GAS_URL + '?' + Object.keys(params).map(k => k + '=' + params[k]).join('&');
     const response = await fetch(url);
     const result = await response.json();
     
