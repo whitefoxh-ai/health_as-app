@@ -1150,46 +1150,96 @@ async function addNewPayment(asNo) {
 // PDF 생성 및 PC 직접 다운로드
 // =====================================================
 async function generateReport(asNo) {
+  console.log('=== PDF 생성 시작 ===');
+  console.log('1. 접수번호:', asNo);
+  
   if (!asNo) {
     alert('접수번호가 필요합니다.');
     return;
   }
   
   try {
-    // 로딩 표시
-    alert('PDF 생성 중... 잠시 기다려주세요.');
-    
-    const url = GAS_URL + '?action=generateCompletionReportPdf&asNo=' + encodeURIComponent(asNo);
-    const response = await fetch(url);
-    const result = await response.json();
-    
-    if (result.error) {
-      throw new Error(result.message);
+    // GAS_URL이 정의되어 있는지 확인
+    if (typeof GAS_URL === 'undefined') {
+      throw new Error('GAS_URL 변수가 정의되지 않았습니다!');
     }
     
-    // Base64 → Blob 변환
+    console.log('2. GAS_URL:', GAS_URL);
+    
+    const url = GAS_URL + '?action=generateCompletionReportPdf&asNo=' + encodeURIComponent(asNo);
+    console.log('3. 요청 URL:', url);
+    
+    // 타임아웃 설정 (5초)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    const response = await fetch(url, {
+      signal: controller.signal,
+      method: 'GET',
+      cache: 'no-cache'
+    });
+    
+    clearTimeout(timeoutId);
+    
+    console.log('4. 응답 상태:', response.status);
+    console.log('4. 응답 OK:', response.ok);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const text = await response.text();
+    console.log('5. 원본 응답 텍스트:', text);
+    
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch (e) {
+      throw new Error('JSON 파싱 실패: ' + text);
+    }
+    
+    console.log('6. 파싱된 결과:', result);
+    
+    if (result.error) {
+      throw new Error('서버 에러: ' + result.message);
+    }
+    
+    if (!result.pdfBase64) {
+      throw new Error('pdfBase64가 응답에 없습니다!');
+    }
+    
+    console.log('7. Base64 길이:', result.pdfBase64.length);
+    
+    // Base64 디코딩
     const byteCharacters = atob(result.pdfBase64);
+    console.log('8. 디코딩 완료, 바이트 수:', byteCharacters.length);
+    
     const byteNumbers = new Array(byteCharacters.length);
     for (let i = 0; i < byteCharacters.length; i++) {
       byteNumbers[i] = byteCharacters.charCodeAt(i);
     }
+    
     const byteArray = new Uint8Array(byteNumbers);
     const blob = new Blob([byteArray], { type: 'application/pdf' });
     
-    // PC 다운로드 트리거
+    console.log('9. Blob 생성 완료:', blob.size, 'bytes');
+    
+    // 다운로드
     const downloadUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = downloadUrl;
     a.download = result.fileName || '작업완료보고서_' + asNo + '.pdf';
+    a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(downloadUrl);
     
+    console.log('10. 다운로드 트리거 완료');
     alert('PDF 다운로드 완료!');
     
   } catch (err) {
-    console.error('PDF 생성 오류:', err);
+    console.error('❌ 최종 에러:', err);
     alert('PDF 생성 실패: ' + err.message);
   }
 }
