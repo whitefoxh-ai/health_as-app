@@ -1113,6 +1113,10 @@ async function viewASDetail(asNo) {
     <span class="font-bold text-green-700">마진 (청구액 - 자재비)</span>
     <span id="display_margin" class="text-xl font-black text-green-600">0원</span>
   </div>
+  <div class="flex justify-between items-center text-sm text-gray-600">
+    <span>입금액</span>
+    <span id="display_paidAmount" class="font-bold" data-value="${detail.paidAmount || 0}">${(detail.paidAmount || 0).toLocaleString()}원</span>
+  </div>
   <div class="flex justify-between items-center pt-2 border-t mt-2">
     <span class="font-bold text-red-700">미수금</span>
     <span id="display_receivable" class="text-xl font-black text-red-600">${(detail.receivable || 0).toLocaleString()}원</span>
@@ -1504,14 +1508,26 @@ function calcEditMaterialCost() {
 // 상세보기: 합계 계산 (자재비 제외!)
 // =====================================================
 function calculateTotal() {
-  const asFee = Number(document.getElementById('edit_asFee')?.value || 0);
-  const materialCost = Number(document.getElementById('edit_materialCost')?.value || 0);
-  const travelCost = Number(document.getElementById('edit_travelCost')?.value || 0);
-  const otherCost = Number(document.getElementById('edit_otherCost')?.value || 0);
-  const paidAmount = Number(document.getElementById('edit_paidAmount')?.value || 0);
-  
+  // 값 가져오기
+  const asFeeEl = document.getElementById('edit_asFee');
+  const materialCostEl = document.getElementById('edit_materialCost');
+  const travelCostEl = document.getElementById('edit_travelCost');
+  const otherCostEl = document.getElementById('edit_otherCost');
   const taxInvoiceEl = document.getElementById('edit_taxInvoice');
+  
+  // 요소가 없으면 종료 (모달이 아직 안 열림)
+  if (!asFeeEl) {
+    console.log('calculateTotal: 요소를 찾을 수 없음');
+    return;
+  }
+  
+  const asFee = Number(asFeeEl.value || 0);
+  const materialCost = Number(materialCostEl?.value || 0);
+  const travelCost = Number(travelCostEl?.value || 0);
+  const otherCost = Number(otherCostEl?.value || 0);
   const taxInvoice = taxInvoiceEl ? taxInvoiceEl.value : '';
+  
+  console.log('calculateTotal 호출:', { asFee, materialCost, travelCost, otherCost, taxInvoice });
   
   // 청구액 = AS비용 + 출장비 + 기타 (자재비 제외!)
   const subTotal = asFee + travelCost + otherCost;
@@ -1525,8 +1541,12 @@ function calculateTotal() {
   // 마진 = 청구액 - 자재비
   const margin = totalWithTax - materialCost;
   
-  // 미수금 = 청구액 - 입금액
+  // 미수금 (기존 입금액 고려)
+  const paidAmountEl = document.getElementById('display_paidAmount');
+  const paidAmount = paidAmountEl ? Number(paidAmountEl.dataset.value || 0) : 0;
   const receivable = Math.max(totalWithTax - paidAmount, 0);
+  
+  console.log('계산 결과:', { subTotal, taxAmount, totalWithTax, margin, receivable });
   
   // 화면 표시: 총 청구액
   const displayEl = document.getElementById('display_total');
@@ -1539,9 +1559,9 @@ function calculateTotal() {
   }
   
   // 화면 표시: 자재비
-  const materialEl = document.getElementById('display_material');
-  if (materialEl) {
-    materialEl.textContent = materialCost.toLocaleString() + '원';
+  const materialDisplayEl = document.getElementById('display_material');
+  if (materialDisplayEl) {
+    materialDisplayEl.textContent = materialCost.toLocaleString() + '원';
   }
   
   // 화면 표시: 마진
@@ -1670,10 +1690,14 @@ function openAddItemModal(originalAsNo) {
     </div>
   `;
   
-      document.body.insertAdjacentHTML('beforeend', modalHtml);
+   document.body.insertAdjacentHTML('beforeend', modalHtml);
     
-    // 초기 합계 계산
-    setTimeout(() => calculateTotal(), 100);
+    // 초기 합계 계산 (모달 렌더링 후)
+    setTimeout(() => {
+      calcEditAsFee();
+      calcEditMaterialCost();
+      calculateTotal();
+    }, 150);
 }
 
 // =====================================================
