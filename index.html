@@ -931,7 +931,7 @@ async function viewASDetail(asNo) {
           <div class="grid md:grid-cols-4 gap-4 mb-4 bg-gray-50 p-4 rounded-lg">
             <div>
               <label class="label">상태</label>
-              <select id="editStatus" class="input">
+              <select id="edit_Status" class="input">
                 ${(MASTER_DATA?.statuses || []).map(s => `<option ${s === detail.status ? 'selected' : ''}>${s}</option>`).join('')}
               </select>
             </div>
