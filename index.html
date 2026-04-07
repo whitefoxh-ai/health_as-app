@@ -1221,14 +1221,15 @@ async function saveASChanges(asNo) {
     console.log('세금계산서 요소:', taxInvoiceEl);
     console.log('세금계산서 값:', taxInvoiceValue);
     
-    const updateData = {
-      asNo: asNo,
-      asFee: Number(document.getElementById('edit_asFee')?.value || 0),
-      materialCost: Number(document.getElementById('edit_materialCost')?.value || 0),
-      travelCost: Number(document.getElementById('edit_travelCost')?.value || 0),
-      otherCost: Number(document.getElementById('edit_otherCost')?.value || 0),
-      taxInvoice: taxInvoiceValue
-    };
+const updateData = {
+  asNo: asNo,
+  asFee: Number(document.getElementById('edit_asFee')?.value || 0),
+  materialCost: Number(document.getElementById('edit_materialCost')?.value || 0),
+  travelCost: Number(document.getElementById('edit_travelCost')?.value || 0),
+  otherCost: Number(document.getElementById('edit_otherCost')?.value || 0),
+  taxInvoice: taxInvoiceValue,
+  status: document.getElementById('editStatus')?.value || null
+};
     
     // 상태, 담당기사 등 다른 필드도 있으면 추가
     const statusEl = document.getElementById('edit_status');
@@ -1427,49 +1428,6 @@ async function deleteASConfirm(asNo) {
 
 function closeModal() {
   document.getElementById('detailModal')?.remove();
-}
-
-// AS 수정 저장
-async function saveASChanges(asNo) {
-  try {
-    const updateData = {
-      asNo: asNo,
-      asFee: Number(document.getElementById('edit_asFee')?.value || 0),
-      materialCost: Number(document.getElementById('edit_materialCost')?.value || 0),
-      travelCost: Number(document.getElementById('edit_travelCost')?.value || 0),
-      otherCost: Number(document.getElementById('edit_otherCost')?.value || 0),
-      taxInvoice: document.getElementById('editTaxInvoice')?.value || '해당없음'  // ✅ 추가
-    };
-    
-    // 상태, 담당기사 등 다른 필드도 있으면 추가
-    const statusEl = document.getElementById('edit_status');
-    if (statusEl) updateData.status = statusEl.value;
-    
-    const technicianEl = document.getElementById('edit_technician');
-    if (technicianEl) updateData.technician = technicianEl.value;
-    
-    const memoEl = document.getElementById('edit_memo');
-    if (memoEl) updateData.memo = memoEl.value;
-    
-    const repairDetailEl = document.getElementById('edit_repairDetail');
-    if (repairDetailEl) updateData.repairDetail = repairDetailEl.value;
-    
-    console.log('저장 데이터:', updateData);  // 디버깅용
-    
-    const result = await callGAS('saveASUpdate', { data: JSON.stringify(updateData) });
-    
-    if (result.error) {
-      throw new Error(result.message);
-    }
-    
-    alert('✅ 저장 완료');
-    closeModal();
-    location.reload();
-    
-  } catch (err) {
-    console.error('저장 오류:', err);
-    alert('저장 실패: ' + (err.message || '알 수 없는 오류'));
-  }
 }
 
 // 입금 추가
