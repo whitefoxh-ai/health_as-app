@@ -931,7 +931,7 @@ async function viewASDetail(asNo) {
           <div class="grid md:grid-cols-4 gap-4 mb-4 bg-gray-50 p-4 rounded-lg">
             <div>
               <label class="label">상태</label>
-              <select id="edit_Status" class="input">
+              <select id="edit_status" class="input">
                 ${(MASTER_DATA?.statuses || []).map(s => `<option ${s === detail.status ? 'selected' : ''}>${s}</option>`).join('')}
               </select>
             </div>
@@ -1228,7 +1228,7 @@ const updateData = {
   travelCost: Number(document.getElementById('edit_travelCost')?.value || 0),
   otherCost: Number(document.getElementById('edit_otherCost')?.value || 0),
   taxInvoice: taxInvoiceValue,
-  status: document.getElementById('edit_Status')?.value || null
+  status: document.getElementById('edit_status')?.value || null
 };
     
     // 상태, 담당기사 등 다른 필드도 있으면 추가
